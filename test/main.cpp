@@ -54,16 +54,15 @@ size_t WriteBlockToDisk(const void* buffer, size_t compressed_block_size,
 		unsigned int block_height)
 { //compressed_block_size means the number of compressed data bytes
 	size_t nmemb = 0;
-	size_t uncompressed_block_size = block_width * block_height * 3;
+	//size_t uncompressed_block_size = block_width * block_height * 3;
 	nmemb += fwrite(&compressed_block_size, sizeof(size_t), 1, stream);
-	nmemb += fputc((int) block_flag, stream);
+	nmemb += fputc(block_flag, stream);
 	nmemb += fwrite(&block_x, sizeof(unsigned int), 1, stream);
 	nmemb += fwrite(&block_y, sizeof(unsigned int), 1, stream);
 	nmemb += fwrite(&block_width, sizeof(unsigned int), 1, stream);
 	nmemb += fwrite(&block_height, sizeof(unsigned int), 1, stream);
 	nmemb += fwrite(buffer, compressed_block_size, 1, stream);
-	nmemb += fwrite(&uncompressed_block_size, sizeof(size_t), 1, stream);
-	if (nmemb == 8)
+	if (nmemb == 7)
 		return nmemb;
 	else
 	{
@@ -149,13 +148,17 @@ int CompressAndWrite(const char* filename)
 
 }
 
-int ReadBlockFromDisk(void *buffer,size_t compressed_block_size,
-	FILE* stream, int * block_flag, unsigned int* block_x,
-	unsigned int* block_y, unsigned int* block_width,
-	unsigned int* block_height)
+int ReadBlockFromDisk(void *buffer, size_t compressed_block_size, FILE* stream,
+		int * block_flag, unsigned int* block_x, unsigned int* block_y,
+		unsigned int* block_width, unsigned int* block_height)
 {
 
-	if ((*(block_flag) = fgetc(stream)) == EOF)
+	/*	if ((fread(&compressed_block_size, sizeof(size_t), 1, stream)) == 0)
+	 {
+	 printf("read error or reach the file's end ！ ");
+	 return 0;
+	 }*/
+	if ((*block_flag = fgetc(stream)) == EOF)
 	{
 		printf("read error or reach the file's end ！ ");
 		return 0;
@@ -169,24 +172,26 @@ int ReadBlockFromDisk(void *buffer,size_t compressed_block_size,
 
 }
 
-XImage* WriteRGBDataToXImage(Display *display,Visual *visual,unsigned char *data,unsigned int width,unsigned int height)
+XImage* WriteRGBDataToXImage(Display *display, Visual *visual,
+		unsigned char *data, unsigned int width, unsigned int height)
 {
-	unsigned char* image32=(unsigned char *)malloc(width*height*4);
-	size_t t=0;
+	unsigned char* image32 = (unsigned char *) malloc(width * height * 4);
+	size_t t = 0;
 	for (unsigned int i = 0; i < height; i++)
 	{
 		for (unsigned int j = 0; j < width; j++)
 		{
-			*(image32+t)=*(data+t+2);//blue
+			*(image32 + t) = *(data + t + 2);  //blue
 			t++;
-			*(image32+t)=*(data+t);//green
+			*(image32 + t) = *(data + t);  //green
 			t++;
-			*(image32+t)=*(data+t-2);//red
-			t+=2;
+			*(image32 + t) = *(data + t - 2);  //red
+			t++;
 		}
 
 	}
-	return XCreateImage(display,visual,24,ZPixmap,0,(char*)image32,width,height,32,0);
+	return XCreateImage(display, visual, 24, ZPixmap, 0, (char*) image32, width,
+			height, 32, 0);  //width*3
 }
 
 int UncompressAndDisplay(const char* filename)
@@ -194,17 +199,21 @@ int UncompressAndDisplay(const char* filename)
 
 	size_t compressed_block_size;
 	size_t uncompressed_block_size;
-	int* block_flag;
-	unsigned int* block_x;
-	unsigned int* block_y;
-	unsigned int* block_width;
-	unsigned int* block_height;
+	int block_flag ;
+	unsigned int block_x ;
+	unsigned int block_y ;
+	unsigned int block_width ;
+	unsigned int block_height ;
+/*	int* block_flag = (int*) malloc(sizeof(int));
+	unsigned int* block_x = (unsigned int*) malloc(sizeof(unsigned int));
+	unsigned int* block_y = (unsigned int*) malloc(sizeof(unsigned int));
+	unsigned int* block_width = (unsigned int*) malloc(sizeof(unsigned int));
+	unsigned int* block_height = (unsigned int*) malloc(sizeof(unsigned int));*/
 	unsigned char* buf = NULL;
 	unsigned char* data = NULL;
 
-
 	XImage* img;
-	FILE *fp = fopen(filename, "r");
+	FILE *fp = fopen(filename, "rb");
 	if (fp == NULL)
 	{
 		printf("could not open  file!!");
@@ -222,40 +231,47 @@ int UncompressAndDisplay(const char* filename)
 		printf("CaptureDesktop cannot get root window");
 		return 0;
 	}
-	Visual* visual=DefaultVisual(display,0);
+	Visual* visual = DefaultVisual(display, 0);
 	//Retrive the width and the height of the screen
 	unsigned int screen_width = DisplayWidth(display, 0);
 	unsigned int screen_height = DisplayHeight(display, 0);
 
-	Window window=XCreateSimpleWindow(display,desktop,0,0,screen_width,screen_height,1,0,0);
+	Window window = XCreateSimpleWindow(display, desktop, 0, 0, screen_width,
+			screen_height, 1, 0, 0);
 
 	//start reading da from disk
-	if(fread(&compressed_block_size,sizeof(size_t),1,fp)==0)
+	if (fread(&compressed_block_size, sizeof(size_t), 1, fp) == 0)
 	{
 		printf("read file error!/n");
 		return -1;
 	}
-	if ((buf = (unsigned char*) malloc(compressed_block_size))
-		== NULL)
+	if ((buf = (unsigned char*) malloc(compressed_block_size)) == NULL)
 	{
 		printf("no enough memory!\n");
 		return -1;
 	}
-	ReadBlockFromDisk(buf,compressed_block_size,fp,block_flag,block_x,block_y,block_width,block_height);
-	if ((data = (unsigned char*) malloc((*block_width)*(*block_height)*3))
-		== NULL)
+	//fseek(fp,-sizeof(size_t),SEEK_CUR);
+	ReadBlockFromDisk(buf, compressed_block_size, fp, &block_flag, &block_x,
+			&block_y, &block_width, &block_height);
+
+	if ((data = (unsigned char*) malloc((block_width) * (block_height) * 3))
+			== NULL)
 	{
 		printf("no enough memory!\n");
 		return -1;
 	}
 	//解压缩
-	if (uncompress(data, &uncompressed_block_size, buf, compressed_block_size) != Z_OK)
+	uncompressed_block_size = block_width * block_height * 3;
+	if (uncompress(data, &uncompressed_block_size, buf,
+			compressed_block_size) != Z_OK)
 	{
 		printf("uncompress failed!\n");
 		return -1;
 	}
-//read rgb data from XImage
-	img=WriteRGBDataToXImage(display,visual,data,*block_width,*block_height);
+
+	//read rgb data from XImage
+	img = WriteRGBDataToXImage(display, visual, data, block_width,
+			block_height);
 
 	{ //用于显示图片
 
@@ -265,21 +281,21 @@ int UncompressAndDisplay(const char* filename)
 		 fprintf(stderr, "Cannot handle non true color visual ...\n");
 		 return 0;
 		 }*/
-		 XSelectInput(display, window, ButtonPressMask | ExposureMask);
-		 XMapWindow(display, window);
-		 XEvent ev;
-		 bool flag = true;
-		 while (flag)
-		 {
+		XSelectInput(display, window, ButtonPressMask | ExposureMask);
+		XMapWindow(display, window);
+		XEvent ev;
+		bool flag = true;
+		while (flag)
+		{
 			/*				        const char *tir="This is red";
 			 const char *tig="This is green";
 			 const char *tib="This is blue";*/
-			 XNextEvent(display, &ev);
-			 switch (ev.type)
-			 {
-			 	case Expose:
-			 	XPutImage(display, window, DefaultGC(display, 0), img, 0, 0, 0,
-			 		0, screen_width, screen_height);
+			XNextEvent(display, &ev);
+			switch (ev.type)
+			{
+			case Expose:
+				XPutImage(display, window, DefaultGC(display, 0), img, 0, 0, 0,
+						0, screen_width, screen_height);
 				XSetForeground(display, DefaultGC(display, 0), 0x00ff0000); // red
 				/*     XDrawString(display, window, DefaultGC(display, 0), 32,     32,     tir, strlen(tir));
 				 XDrawString(display, window, DefaultGC(display, 0), 32+256, 32,     tir, strlen(tir));
@@ -295,35 +311,35 @@ int UncompressAndDisplay(const char* filename)
 				 XDrawString(display, window, DefaultGC(display, 0), 32+256, 72,     tib, strlen(tib));
 				 XDrawString(display, window, DefaultGC(display, 0), 32+256, 72+256, tib, strlen(tib));
 				 XDrawString(display, window, DefaultGC(display, 0), 32,     72+256, tib, strlen(tib));*/
-				 break;
+				break;
 
-				 case ButtonPress:
-				 flag = false;
-				 XUnmapWindow(display, window);
+			case ButtonPress:
+				flag = false;
+				XUnmapWindow(display, window);
 
-				}
 			}
 		}
+	}
 
 	/* 释放内存 */
-		if (buf != NULL || data != NULL)
-		{
-			free(buf);
-			free(data);
-			buf = NULL;
-			data = NULL;
-		}
-		fclose(fp);
-		XDestroyWindow(display, window);
-		XDestroyImage(img);
-		XCloseDisplay(display);
-		return 1;
+	if (buf != NULL || data != NULL)
+	{
+		free(buf);
+		free(data);
+		buf = NULL;
+		data = NULL;
 	}
+	fclose(fp);
+	XDestroyWindow(display, window);
+	XDestroyImage(img);
+	XCloseDisplay(display);
+	return 1;
+}
 
 int main()
 {
 
-	//CompressAndWrite("./screen");
+	CompressAndWrite("./screen");
 	UncompressAndDisplay("./screen");
 	printf(" Done.\n");
 
