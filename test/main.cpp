@@ -21,7 +21,6 @@ size_t WriteBlockToDisk(const void* buffer, size_t compressed_block_size,
 		unsigned int block_height)
 { //compressed_block_size means the number of compressed data bytes
 	size_t nmemb = 0;
-	//size_t uncompressed_block_size = block_width * block_height * 3;
 	nmemb += fwrite(&compressed_block_size, sizeof(size_t), 1, stream);
 	nmemb += fputc(block_flag, stream);
 	nmemb += fwrite(&block_x, sizeof(unsigned int), 1, stream);
@@ -63,7 +62,6 @@ int CompressAndWrite(const char* filename)
 	}
 
 	//get the image of the root window
-
 	FILE *fp = fopen(filename, "wb");
 	if (fp == NULL)
 	{
@@ -129,12 +127,6 @@ int ReadBlockFromDisk(void *buffer, size_t compressed_block_size, FILE* stream,
 		int * block_flag, unsigned int* block_x, unsigned int* block_y,
 		unsigned int* block_width, unsigned int* block_height)
 {
-
-	/*	if ((fread(&compressed_block_size, sizeof(size_t), 1, stream)) == 0)
-	 {
-	 printf("read error or reach the file's end ！ ");
-	 return 0;
-	 }*/
 	if ((*block_flag = fgetc(stream)) == EOF)
 	{
 		printf("read error or reach the file's end ！ ");
@@ -190,12 +182,11 @@ int UncompressAndDisplay(const char* filename)
 			screen_height, 1, 0, 0);
 
 	//start reading da from disk
-
 	while (1)
 	{
 		if (fread(&compressed_block_size, sizeof(size_t), 1, fp) == 0)
 		{
-			printf("reach the end of file !\n");
+			printf("reach the end of file or read error !\n");
 			return -1;
 		}
 		if ((buf = (unsigned char*) malloc(compressed_block_size)) == NULL)
@@ -225,7 +216,7 @@ int UncompressAndDisplay(const char* filename)
 		img = XCreateImage(display, visual, 24, ZPixmap, 0, img_data,
 				block_width, block_height, 32, 0);
 
-		{ //用于显示图片
+		{ //用于显示图片 需修改
 			XSelectInput(display, window, ButtonPressMask | ExposureMask);
 			XMapWindow(display, window);
 			XEvent ev;
@@ -238,12 +229,8 @@ int UncompressAndDisplay(const char* filename)
 				{
 				case Expose:
 					XPutImage(display, window, DefaultGC(display, 0), img, 0, 0,
-							0, 0, screen_width, screen_height);
-					/*		XSetForeground(display, DefaultGC(display, 0), 0x00ff0000); // red
-					 XSetForeground(display, DefaultGC(display, 0), 0x0000ff00); // green
-					 XSetForeground(display, DefaultGC(display, 0), 0x000000ff); // blue*/
+							block_x, block_y, block_width, block_height);
 					break;
-
 				case ButtonPress:
 					display_flag = false;
 					XUnmapWindow(display, window);
@@ -270,7 +257,7 @@ int UncompressAndDisplay(const char* filename)
 int main()
 {
 
-	CompressAndWrite("./screen");
+	//CompressAndWrite("./screen");
 	UncompressAndDisplay("./screen");
 	printf(" Done.\n");
 
