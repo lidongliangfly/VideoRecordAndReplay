@@ -109,7 +109,12 @@ int CompressAndWrite(const char* filename)
 
 			WriteBlockToDisk(buf, blen, fp, block_flag, block_x, block_y,
 					block_width, block_height);
+			if (buf != NULL)
+			{
+				free(buf);
+				fp = NULL;
 
+			}
 		}
 		//控制帧率的块
 	}
@@ -118,13 +123,7 @@ int CompressAndWrite(const char* filename)
 	fclose(fp);
 	XDestroyImage(img);
 	XCloseDisplay(display);
-	if (buf != NULL || fp != NULL)
-	{
-		free(buf);
-		buf = NULL;
-		fp = NULL;
-
-	}
+	fp = NULL;
 
 	return 1;
 
