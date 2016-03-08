@@ -47,7 +47,9 @@ int CompressAndWrite(const char* filename)
 	unsigned int block_y;
 	unsigned int block_width;
 	unsigned int block_height;
-
+	unsigned long uncompress_block_size;
+	unsigned long blen;
+	unsigned char* buf = NULL;
 	display = XOpenDisplay(NULL); //connect to a local display
 	if (NULL == display)
 	{
@@ -60,7 +62,6 @@ int CompressAndWrite(const char* filename)
 		printf("CaptureDesktop cannot get root window");
 		return 0;
 	}
-
 	//get the image of the root window
 	FILE *fp = fopen(filename, "wb");
 	if (fp == NULL)
@@ -68,57 +69,63 @@ int CompressAndWrite(const char* filename)
 		printf("could not open  file!!");
 		return 0;
 	}
-	{ //赋值给block变量，需删改
-	  //Retrive the width and the height of the screen
-		block_flag = 1;
-		block_x = 0;
-		block_y = 0;
-		block_width = DisplayWidth(display, 0);
-		block_height = DisplayHeight(display, 0);
 
-	}
-	int n = 10;
-	unsigned long uncompress_block_size = block_width * block_height * 4;
-	unsigned long blen;
-	unsigned char* buf = NULL;
-	for (int i = 0; i < n; i++)
-	{
+	{ //控制帧率的块
 
-		img = XGetImage(display, desktop, block_x, block_y, block_width,
-				block_height, ~0,
-				ZPixmap);
+		{ //赋值给block变量，需删改
+		  //Retrive the width and the height of the screen
+			block_flag = 1;
+			block_x = 0;
+			block_y = 0;
+			block_width = DisplayWidth(display, 0);
+			block_height = DisplayHeight(display, 0);
 
-		//压缩部分 计算缓冲区大小，并为其分配内存
-		blen = compressBound(uncompress_block_size);  //压缩后的长度是不会超过blen的
-		if ((buf = (unsigned char*) malloc(sizeof(unsigned char) * blen))
-				== NULL)
-		{
-			printf("no enough memory!\n");
-			return -1;
 		}
-
-		//压缩
-		if (compress(buf, &blen, (unsigned char*) img->data,
-				uncompress_block_size) != Z_OK)
+		int n = 10;
+		uncompress_block_size = block_width * block_height * 4;
+		for (int i = 0; i < n; i++)
 		{
-			printf("compress failed!\n");
-			return -1;
+
+			img = XGetImage(display, desktop, block_x, block_y, block_width,
+					block_height, ~0,
+					ZPixmap);
+
+			//压缩部分 计算缓冲区大小，并为其分配内存
+			blen = compressBound(uncompress_block_size);  //压缩后的长度是不会超过blen的
+			if ((buf = (unsigned char*) malloc(sizeof(unsigned char) * blen))
+					== NULL)
+			{
+				printf("no enough memory!\n");
+				return -1;
+			}
+
+			//压缩
+			if (compress(buf, &blen, (unsigned char*) img->data,
+					uncompress_block_size) != Z_OK)
+			{
+				printf("compress failed!\n");
+				return -1;
+			}
+
+			WriteBlockToDisk(buf, blen, fp, block_flag, block_x, block_y,
+					block_width, block_height);
+
 		}
-
-		WriteBlockToDisk(buf, blen, fp, block_flag, block_x, block_y,
-				block_width, block_height);
-
+		//控制帧率的块
 	}
+
 	/* 释放内存 */
-	if (buf != NULL)
-	{
-		free(buf);
-		buf = NULL;
-
-	}
 	fclose(fp);
 	XDestroyImage(img);
 	XCloseDisplay(display);
+	if (buf != NULL || fp != NULL)
+	{
+		free(buf);
+		buf = NULL;
+		fp = NULL;
+
+	}
+
 	return 1;
 
 }
@@ -240,24 +247,26 @@ int UncompressAndDisplay(const char* filename)
 		}
 	}
 	/* 释放内存 */
+	fclose(fp);
+	XDestroyWindow(display, window);
+	XDestroyImage(img);
+	XCloseDisplay(display);
 	if (buf != NULL || img_data != NULL)
 	{
 		free(buf);
 		free(img_data);
 		buf = NULL;
 		img_data = NULL;
+		fp = NULL;
 	}
-	fclose(fp);
-	XDestroyWindow(display, window);
-	XDestroyImage(img);
-	XCloseDisplay(display);
+
 	return 1;
 }
 
 int main()
 {
 
-	//CompressAndWrite("./screen");
+	CompressAndWrite("./screen");
 	UncompressAndDisplay("./screen");
 	printf(" Done.\n");
 
