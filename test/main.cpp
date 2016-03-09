@@ -37,11 +37,33 @@ size_t WriteBlockToDisk(const void* buffer, size_t compressed_block_size,
 	}
 }
 
+/*int CaptureAndCompare(Display* display,Drawable desktop,unsigned int screen_width,unsigned int screen_height, XImage* baseimg,XImage* newimg,unsigned int* block_n)
+{
+	if(newimg!=NULL)
+		newimg=NULL;
+	newimg== XGetImage(display, desktop, 0, 0, screen_width,
+			screen_height, ~0,
+			ZPixmap);
+
+
+
+	这里是函数体，比较不同并保存(按block_x,block_y,block_width,block_height)数据在block_n
+
+
+	if 更新基础帧
+	XDestroyImage(baseimg);
+	baseimg=newimg;
+
+	//返回block_n的长度(按block_x,block_y,block_width,block_height)
+}*/
+
 int CompressAndWrite(const char* filename)
 {
 	Window desktop;
 	Display* display;
 	XImage* img;
+	XImage* base_img;
+	XImage* compare_img;
 	unsigned char block_flag;
 	unsigned int block_x;
 	unsigned int block_y;
@@ -50,6 +72,7 @@ int CompressAndWrite(const char* filename)
 	unsigned long uncompress_block_size;
 	unsigned long blen;
 	unsigned char* buf = NULL;
+	unsigned int* block_num=(unsigned int*)malloc(550);
 	display = XOpenDisplay(NULL); //connect to a local display
 	if (NULL == display)
 	{
@@ -69,8 +92,11 @@ int CompressAndWrite(const char* filename)
 		printf("could not open  file!!");
 		return 0;
 	}
-
+	unsigned int screen_width = DisplayWidth(display, 0);
+	unsigned int screen_height = DisplayHeight(display, 0);
 	{ //控制帧率的块
+
+		//CaptureAndCompare
 
 		{ //赋值给block变量，需删改
 		  //Retrive the width and the height of the screen
