@@ -37,12 +37,12 @@ size_t WriteBlockToDisk(const void* buffer, size_t compressed_block_size,
 	}
 }
 
-/*int CaptureAndCompare(Display* display,Drawable desktop,unsigned int screen_width,unsigned int screen_height, XImage* baseimg,XImage* newimg,unsigned int* block_n)
+/*int CaptureAndCompare(Display* display,Drawable desktop, XImage* baseimg,XImage* newimg,unsigned int* block_n)
 {
 	if(newimg!=NULL)
 		newimg=NULL;
-	newimg== XGetImage(display, desktop, 0, 0, screen_width,
-			screen_height, ~0,
+	newimg== XGetImage(display, desktop, 0, 0, baseimg->width,
+			baseimg->height, ~0,
 			ZPixmap);
 
 
