@@ -138,7 +138,7 @@ int CompressAndWrite(const char* filename)
 			if (buf != NULL)
 			{
 				free(buf);
-				fp = NULL;
+				buf = NULL;
 
 			}
 		}
