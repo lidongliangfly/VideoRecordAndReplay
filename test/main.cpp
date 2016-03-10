@@ -15,12 +15,12 @@
 #include<X11/Xutil.h>
 #include<zlib.h>
 
-size_t WriteBlockToDisk(const void* buffer, size_t compressed_block_size,
+int WriteBlockToDisk(const void* buffer, size_t compressed_block_size,
 		FILE* stream, unsigned int Frame_number, unsigned int block_x,
 		unsigned int block_y, unsigned int block_width,
 		unsigned int block_height)
 { //compressed_block_size means the number of compressed data bytes
-	size_t nmemb = 0;
+	int nmemb = 0;
 	nmemb += fwrite(&compressed_block_size, sizeof(size_t), 1, stream);
 	nmemb += fwrite(&Frame_number, sizeof(unsigned int), 1, stream);
 	nmemb += fwrite(&block_x, sizeof(unsigned int), 1, stream);
