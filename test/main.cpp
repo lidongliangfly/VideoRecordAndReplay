@@ -10,19 +10,19 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
-
+#include<time.h>
 #include<X11/Xlib.h>
 #include<X11/Xutil.h>
 #include<zlib.h>
 
 size_t WriteBlockToDisk(const void* buffer, size_t compressed_block_size,
-		FILE* stream, unsigned char block_flag, unsigned int block_x,
+		FILE* stream, unsigned int Frame_number, unsigned int block_x,
 		unsigned int block_y, unsigned int block_width,
 		unsigned int block_height)
 { //compressed_block_size means the number of compressed data bytes
 	size_t nmemb = 0;
 	nmemb += fwrite(&compressed_block_size, sizeof(size_t), 1, stream);
-	nmemb += fputc(block_flag, stream);
+	nmemb += fwrite(&Frame_number, sizeof(unsigned int), 1, stream);
 	nmemb += fwrite(&block_x, sizeof(unsigned int), 1, stream);
 	nmemb += fwrite(&block_y, sizeof(unsigned int), 1, stream);
 	nmemb += fwrite(&block_width, sizeof(unsigned int), 1, stream);
@@ -38,10 +38,12 @@ size_t WriteBlockToDisk(const void* buffer, size_t compressed_block_size,
 }
 
 int ReadBlockFromDisk(void *buffer, size_t compressed_block_size, FILE* stream,
-		int * block_flag, unsigned int* block_x, unsigned int* block_y,
-		unsigned int* block_width, unsigned int* block_height)
+		unsigned int * Frame_number, unsigned int* block_x,
+		unsigned int* block_y, unsigned int* block_width,
+		unsigned int* block_height)
 {
-	if ((*block_flag = fgetc(stream)) == EOF)
+
+	if ((fread(Frame_number, sizeof(unsigned int), 1, stream)) != 1)
 	{
 		printf("read error or reach the file's end ！ ");
 		return 0;
@@ -64,19 +66,19 @@ int GetDatablockFromXImage(XImage* newimg, char* block_data,
 	//unsigned int height = newimg->height;
 	unsigned int rightCornor_x = block_x + block_width;
 	unsigned int rightCornor_y = block_y + block_height;
-	//char* p = newimg->data;
+	char* p = newimg->data;
 	unsigned int t = 0;
 	for (unsigned int i = block_y; i < rightCornor_y; i++)
 	{
 		for (unsigned int j = block_x; j < rightCornor_x; j++)
 		{	//XGetPixel(newimg, j, i);
-			*(block_data + t) = *(newimg->data + (i * width + j) * 4);	//错误在于赋值
+			*(block_data + t) = *(p + (i * width + j) * 4);	//错误在于赋值
 			t++;
-			*(block_data + t) = *(newimg->data + (i * width + j) * 4 + 1);
+			*(block_data + t) = *(p + (i * width + j) * 4 + 1);
 			t++;
-			*(block_data + t) = *(newimg->data + (i * width + j) * 4 + 2);
+			*(block_data + t) = *(p + (i * width + j) * 4 + 2);
 			t++;
-			*(block_data + t) = *(newimg->data + (i * width + j) * 4 + 3);
+			*(block_data + t) = *(p + (i * width + j) * 4 + 3);
 			t++;
 		}
 	}
@@ -118,25 +120,120 @@ int PutDatablockToXImage(XImage* baseimg, char* block_data,
 	}
 	return 1;
 }
-/*int CaptureAndCompare(Display* display,Drawable desktop, XImage* baseimg,XImage* newimg,unsigned int* block_n)
- {
- if(newimg!=NULL)
- newimg=NULL;
- newimg== XGetImage(display, desktop, 0, 0, baseimg->width,
- baseimg->height, ~0,
- ZPixmap);
+int MyStrcmp(char *s, char *d, int length)//campare the source string and the dest string
+{
+	int i = 0, r = -1;
+	if (((s + i) == NULL) && ((s + i) == NULL))
+		return r;
+	for (; i < length; i++)
+		if (*(s + i) != *(d + i))
+		{
+			r = 1;
+			break;
+		}
+	if (i == length)
+		r = 0;
+	return r;
+}
 
-
-
- 这里是函数体，比较不同并保存(按block_x,block_y,block_width,block_height)数据在block_n
-
-
- if 更新基础帧
- XDestroyImage(baseimg);
- baseimg=newimg;
-
- //返回block_n的长度(按block_x,block_y,block_width,block_height)
- }*/
+int CaptureAndCompare(Display* display, Window desktop, XImage* baseimg,
+		XImage* newimg, unsigned int* block_n)
+{
+	int block_num = 0;	//the length of block_n
+	int screen_width = (int) baseimg->width;
+	int screen_height = (int) baseimg->height;
+	if (newimg != NULL)
+		newimg = NULL;
+	newimg = XGetImage(display, desktop, 0, 0, screen_width, screen_height, ~0,
+	ZPixmap);
+	int tile_width = 64, tile_height = 64, i = 0, j = 0;
+	int n_x = (baseimg->width - 1) / tile_width + 1, tail_x = baseimg->width
+			- tile_width * (n_x - 1);
+	int n_y = (baseimg->height - 1) / tile_height + 1, tail_y = baseimg->height
+			- tile_height * (n_y - 1);
+	int tile_diff[n_x * n_y];	//save the next frame diff
+	//compare 2 frames ,TileDiff
+	{
+		int k = 0, xx = 0, j, i;
+		srand((int) time(NULL));
+		for (i = 0; i < n_y - 1; i++)
+		{
+			j = (int) (((float) tile_height) * rand() / RAND_MAX)
+					+ tile_height * i;    //the scan line
+			for (xx = 0; xx < n_x - 1; xx++)
+				tile_diff[k++] = MyStrcmp(
+						baseimg->data + j * screen_width * 4
+								+ xx * tile_width * 4,
+						newimg->data + j * screen_width * 4
+								+ xx * tile_width * 4, tile_width * 4);
+			tile_diff[k++] = MyStrcmp(
+					baseimg->data + j * screen_width * 4 + xx * tile_width * 4,
+					newimg->data + j * screen_width * 4 + xx * tile_width * 4,
+					tail_x * 4);
+		}
+		j = (int) (((float) tail_y) * rand() / RAND_MAX) + tile_height * i; //the scan line
+		for (xx = 0; xx < n_x - 1; xx++)
+			tile_diff[k++] = MyStrcmp(
+					baseimg->data + j * screen_width * 4 + xx * tile_width * 4,
+					newimg->data + j * screen_width * 4 + xx * tile_width * 4,
+					tile_width * 4);
+		tile_diff[k++] = MyStrcmp(
+				baseimg->data + j * screen_width * 4 + xx * tile_width * 4,
+				newimg->data + j * screen_width * 4 + xx * tile_width * 4,
+				tail_x * 4);
+	}    //compare 2 frames done;save result to tile_diff[]
+	for (i = 0; i < n_y; i++)    //calculate block_num
+		for (j = 0; j < n_x; j++)
+			if (tile_diff[i * n_x + j])
+				block_num++;
+	if (!block_num)
+		return 0;
+	//if 更新基础帧
+	if (block_num >= (n_x * n_y * 0.7))
+	{
+		XDestroyImage(baseimg);
+		baseimg = newimg;
+		return 1;    //更新基础帧
+	}
+	//这里是函数体，比较不同并保存(按block_x,block_y,block_width,block_height)数据在block_n
+	for (i = 0; i < n_y - 1; i++)
+	{
+		for (j = 0; j < n_x - 1; j++)
+			if (tile_diff[i * n_x + j])
+			{
+				*(block_n++) = j * tile_width;    //x
+				*(block_n++) = i * tile_height;    //y
+				*(block_n++) = tile_width;    //w
+				*(block_n++) = tile_height;    //h
+			}
+		//the last column
+		if (tile_diff[i * n_x + j])
+		{
+			*(block_n++) = j * tile_width;    //x
+			*(block_n++) = i * tile_height;    //y
+			*(block_n++) = tail_x;    //;w
+			*(block_n++) = tile_height;    //h
+		}
+	}
+	//the last line
+	for (j = 0; j < n_x - 1; j++)
+		if (tile_diff[i * n_x + j])
+		{
+			*(block_n++) = j * tile_width;    //x
+			*(block_n++) = i * tile_height;    //y
+			*(block_n++) = tile_width;    //w
+			*(block_n++) = tail_y;    //;h
+		}
+	//the last block
+	if (tile_diff[i * n_x + j])
+	{
+		*(block_n++) = j * tile_width;    //x
+		*(block_n++) = i * tile_height;    //y
+		*(block_n++) = tail_x;    //;w
+		*(block_n++) = tail_y;    //;h
+	}
+	return block_num;  //返回block_n的长度(按block_x,block_y,block_width,block_height)
+}
 
 int CompressAndWrite(const char* filename)
 {
@@ -144,15 +241,15 @@ int CompressAndWrite(const char* filename)
 	Display* display;
 	XImage* base_img;
 	XImage* new_img;
-	unsigned char block_flag;
+	unsigned int Frame_number = 0;
 	unsigned int block_x;
 	unsigned int block_y;
 	unsigned int block_width;
 	unsigned int block_height;
-	unsigned long uncompress_block_size;
+	unsigned long uncompress_block_size = 0;
 	unsigned long blen;
 	unsigned char* buf = NULL;
-	//unsigned int* block_num = (unsigned int*) malloc(550);
+	int block_num = 0;
 	char* block_data = NULL;
 	display = XOpenDisplay(NULL); //connect to a local display
 	if (NULL == display)
@@ -178,27 +275,52 @@ int CompressAndWrite(const char* filename)
 	base_img = XGetImage(display, desktop, 0, 0, screen_width, screen_height,
 			~0,
 			ZPixmap);
+
+	/*	char* new_img_data = (char*) malloc(screen_height * screen_width * 4);
+	 new_img = XCreateImage(display, DefaultVisual(display, 0), 24, ZPixmap, 0,
+	 NULL, screen_width, screen_height, 32, 0);*/
+	for (int m = 0; m < 10; m++)
 	{ //控制帧率的块
+		sleep(2);
+		new_img = XGetImage(display, desktop, 0, 0, screen_width, screen_height,
+				~0,
+				ZPixmap);
+		unsigned int* block_parameter;
+		if ((block_parameter = (unsigned int*) malloc(2200)) == NULL)
+		{
+			printf("no enough memory!\n");
+			return -1;
+		}
+		block_num = CaptureAndCompare(display, desktop, base_img, new_img,
+				block_parameter);
 
-		//CaptureAndCompare
-
-		{ //赋值给block变量，需删改
-		  //Retrive the width and the height of the screen
-			block_flag = 1;
+		if (Frame_number != 0 && block_num == 0)
+		{
+			size_t no_update = 0;
+			fwrite(&no_update, sizeof(size_t), 1, fp);
+			continue;
+		}
+		if (Frame_number == 0)
+		{
+			block_num = 1;
 			block_x = 0;
 			block_y = 0;
-			block_width = DisplayWidth(display, 0);
-			block_height = DisplayHeight(display, 0);
-
+			block_width = screen_width;
+			block_height = screen_height;
 		}
-		int n = 10;
-
-		for (int i = 0; i < n; i++)
+		for (int i = 0; i < block_num; i++)
 		{
+			if (Frame_number != 0)
+			{ //赋值给block变量，需删改
+			  //Retrive the width and the height of the screen
+				block_x = *(block_parameter + i * 4);
+				block_y = *(block_parameter + i * 4 + 1);
+				block_width = *(block_parameter + i * 4 + 2);
+				block_height = *(block_parameter + i * 4 + 3);
+				printf("%d %d %d %d 帧号:%d\n", block_x, block_y, block_width,
+						block_height, Frame_number);
+			}
 
-			new_img = XGetImage(display, desktop, block_x, block_y, block_width,
-					block_height, ~0,
-					ZPixmap);
 			uncompress_block_size = block_width * block_height * 4;
 			if ((block_data = (char*) malloc(uncompress_block_size)) == NULL)
 			{
@@ -229,7 +351,7 @@ int CompressAndWrite(const char* filename)
 				return -1;
 			}
 
-			WriteBlockToDisk(buf, blen, fp, block_flag, block_x, block_y,
+			WriteBlockToDisk(buf, blen, fp, Frame_number, block_x, block_y,
 					block_width, block_height);
 			if (buf != NULL || block_data != NULL)
 			{
@@ -240,16 +362,19 @@ int CompressAndWrite(const char* filename)
 
 			}
 		}
+		Frame_number++;  //帧号
+
+		free(block_parameter);
+		block_parameter = NULL;
+		XDestroyImage(new_img);
 		//控制帧率的块
 	}
 
 	/* 释放内存 */
 	fclose(fp);
 	XDestroyImage(base_img);
-	XDestroyImage(new_img);
 	XCloseDisplay(display);
 	fp = NULL;
-
 	return 1;
 
 }
@@ -259,8 +384,8 @@ int UncompressAndDisplay(const char* filename)
 
 	size_t compressed_block_size;
 	size_t uncompressed_block_size;
-	int block_flag;
-	int display_flag=0;
+	unsigned int Frame_number;
+	int display_flag = -1;
 	unsigned int block_x;
 	unsigned int block_y;
 	unsigned int block_width;
@@ -296,9 +421,6 @@ int UncompressAndDisplay(const char* filename)
 			screen_height, 1, 0, 0);
 	img = XGetImage(display, desktop, 0, 0, screen_width, screen_height, ~0,
 	ZPixmap);
-	/*	Visual* visual = DefaultVisual(display, 0);
-	  img = XCreateImage(display, visual, 24, ZPixmap, 0, NULL,
-	 screen_width, screen_height, 32, 0);*/
 
 	//start reading da from disk
 	while (1)
@@ -308,14 +430,16 @@ int UncompressAndDisplay(const char* filename)
 			printf("reach the end  or read error !\n");
 			return -1;
 		}
+		if (compressed_block_size == 0)
+			continue;
 		if ((buf = (unsigned char*) malloc(compressed_block_size)) == NULL)
 		{
 			printf("no enough memory!\n");
 			return -1;
 		}
 		//读数据
-		ReadBlockFromDisk(buf, compressed_block_size, fp, &block_flag, &block_x,
-				&block_y, &block_width, &block_height);
+		ReadBlockFromDisk(buf, compressed_block_size, fp, &Frame_number,
+				&block_x, &block_y, &block_width, &block_height);
 
 		if ((img_data = (char*) malloc((block_width) * (block_height) * 4))
 				== NULL)
@@ -332,36 +456,40 @@ int UncompressAndDisplay(const char* filename)
 			return -1;
 		}
 
-		if(block_flag!=display_flag)
+		if (Frame_number - display_flag == 1)
 		{ //用于显示图片 需修改
-			XSelectInput(display, window, ButtonPressMask | ExposureMask);
+		  //XSelectInput(display, window, ButtonPressMask | ExposureMask);
 			XMapWindow(display, window);
-			XEvent ev;
-			bool displayflag = true;
-			while (displayflag)
-			{
+			/*XEvent ev;
+			 bool displayflag = true;
+			 while (displayflag)
+			 {
 
-				XNextEvent(display, &ev);
-				switch (ev.type)
-				{
-				case Expose:
-					XPutImage(display, window, DefaultGC(display, 0), img, 0, 0,
-							block_x, block_y, block_width, block_height);
-					break;
-				case ButtonPress:
-					displayflag = false;
-					XUnmapWindow(display, window);
-				}
-			}
-			if(display_flag==0) display_flag=1;
-			else display_flag=0;
+			 XNextEvent(display, &ev);
+			 switch (ev.type)
+			 {
+			 case Expose:
+			 XPutImage(display, window, DefaultGC(display, 0), img, 0, 0,
+			 block_x, block_y, block_width, block_height);
+			 break;
+			 case ButtonPress:
+			 displayflag = false;
+			 //XUnmapWindow(display, window);
+			 }
+
+			 }*/
+			XPutImage(display, window, DefaultGC(display, 0), img, 0, 0, 0, 0,
+					screen_width, screen_height);
+			sleep(1);
+			display_flag++;
 		}
 
 		PutDatablockToXImage(img, img_data, block_x, block_y, block_width,
 				block_height);
+		//
 	}
 	/* 释放内存 */
-
+	XUnmapWindow(display, window);
 	fclose(fp);
 	XDestroyWindow(display, window);
 	XDestroyImage(img);
