@@ -373,7 +373,7 @@ int UncompressAndDisplay(const char* filename)
 int main()
 {
 
-	//CompressAndWrite("./screen");
+	CompressAndWrite("./screen");
 	UncompressAndDisplay("./screen");
 	printf(" Done.\n");
 
