@@ -37,33 +37,114 @@ size_t WriteBlockToDisk(const void* buffer, size_t compressed_block_size,
 	}
 }
 
-/*int CaptureAndCompare(Display* display,Drawable desktop,unsigned int screen_width,unsigned int screen_height, XImage* baseimg,XImage* newimg,unsigned int* block_n)
+int ReadBlockFromDisk(void *buffer, size_t compressed_block_size, FILE* stream,
+		int * block_flag, unsigned int* block_x, unsigned int* block_y,
+		unsigned int* block_width, unsigned int* block_height)
 {
-	if(newimg!=NULL)
-		newimg=NULL;
-	newimg== XGetImage(display, desktop, 0, 0, screen_width,
-			screen_height, ~0,
-			ZPixmap);
+	if ((*block_flag = fgetc(stream)) == EOF)
+	{
+		printf("read error or reach the file's end ！ ");
+		return 0;
+	}
+	fread(block_x, sizeof(unsigned int), 1, stream);
+	fread(block_y, sizeof(unsigned int), 1, stream);
+	fread(block_width, sizeof(unsigned int), 1, stream);
+	fread(block_height, sizeof(unsigned int), 1, stream);
+	fread(buffer, compressed_block_size, 1, stream);
+	return 1;
+
+}
+
+int GetDatablockFromXImage(XImage* newimg, char* block_data,
+		unsigned int block_x, unsigned int block_y, unsigned int block_width,
+		unsigned int block_height)
+{
+	//block_data = (unsigned char*) malloc(block_height * block_width * 4);
+	int width =  (int)newimg->width;
+	//unsigned int height = newimg->height;
+	unsigned int rightCornor_x = block_x + block_width;
+	unsigned int rightCornor_y = block_y + block_height;
+	char* p = newimg->data;
+	//printf("%c",&(newimg->data));
+	unsigned int t = 0;
+	for (unsigned int i = block_y; i < rightCornor_y; i++)
+	{
+		for (unsigned int j = block_x; j < rightCornor_x; j++)
+		{	//XGetPixel(newimg, j, i);
+			*(block_data + t) = *(p + (i * width + j) * 4);	//错误在于赋值
+			t++;
+			*(block_data + t) = *(p + (i * width + j) * 4+ 1);
+			t++;
+			*(block_data + t) = *(p + (i * width + j) * 4+ 2);
+			t++;
+			*(block_data + t) = *(p + (i * width + j) * 4+ 3);
+			t++;
+		}
+	}
+	if (t != block_width * block_height * 4)
+	{
+		printf("GetDatablockFromXImage inside write error !\n");
+		return -1;
+	}
+	return 1;
+}
+
+int PutDatablockToXImage(XImage* baseimg, char* block_data,
+		unsigned int block_x, unsigned int block_y, unsigned int block_width,
+		unsigned int block_height)
+{
+	unsigned int width = baseimg->width;
+	//unsigned int height = baseimg->height;
+	unsigned int rightCornor_x = block_x + block_width;
+	unsigned int rightCornor_y = block_y + block_height;
+	unsigned int t = 0;
+	for (unsigned int i = block_y; i < rightCornor_y; i++)
+	{
+		for (unsigned int j = block_x; j < rightCornor_x; j++)
+		{
+			*((baseimg->data) + (i * width + j) * 4 ) = *(block_data + t);
+			t++;
+			*((baseimg->data) + (i * width + j) * 4 + 1) = *(block_data + t);
+			t++;
+			*((baseimg->data) + (i * width + j) * 4 + 2) = *(block_data + t);
+			t++;
+			*((baseimg->data) + (i * width + j) * 4 + 3) = *(block_data + t);
+			t++;
+		}
+	}
+	if (t != block_width * block_height * 4)
+	{
+		printf("GetDatablockFromXImage inside write error !\n");
+		return -1;
+	}
+	return 1;
+}
+/*int CaptureAndCompare(Display* display,Drawable desktop, XImage* baseimg,XImage* newimg,unsigned int* block_n)
+ {
+ if(newimg!=NULL)
+ newimg=NULL;
+ newimg== XGetImage(display, desktop, 0, 0, baseimg->width,
+ baseimg->height, ~0,
+ ZPixmap);
 
 
 
-	这里是函数体，比较不同并保存(按block_x,block_y,block_width,block_height)数据在block_n
+ 这里是函数体，比较不同并保存(按block_x,block_y,block_width,block_height)数据在block_n
 
 
-	if 更新基础帧
-	XDestroyImage(baseimg);
-	baseimg=newimg;
+ if 更新基础帧
+ XDestroyImage(baseimg);
+ baseimg=newimg;
 
-	//返回block_n的长度(按block_x,block_y,block_width,block_height)
-}*/
+ //返回block_n的长度(按block_x,block_y,block_width,block_height)
+ }*/
 
 int CompressAndWrite(const char* filename)
 {
 	Window desktop;
 	Display* display;
-	XImage* img;
 	XImage* base_img;
-	XImage* compare_img;
+	XImage* new_img;
 	unsigned char block_flag;
 	unsigned int block_x;
 	unsigned int block_y;
@@ -72,7 +153,8 @@ int CompressAndWrite(const char* filename)
 	unsigned long uncompress_block_size;
 	unsigned long blen;
 	unsigned char* buf = NULL;
-	unsigned int* block_num=(unsigned int*)malloc(550);
+	//unsigned int* block_num = (unsigned int*) malloc(550);
+	char* block_data = NULL;
 	display = XOpenDisplay(NULL); //connect to a local display
 	if (NULL == display)
 	{
@@ -94,6 +176,9 @@ int CompressAndWrite(const char* filename)
 	}
 	unsigned int screen_width = DisplayWidth(display, 0);
 	unsigned int screen_height = DisplayHeight(display, 0);
+	base_img = XGetImage(display, desktop, 0, 0, screen_width, screen_height,
+			~0,
+			ZPixmap);
 	{ //控制帧率的块
 
 		//CaptureAndCompare
@@ -108,13 +193,25 @@ int CompressAndWrite(const char* filename)
 
 		}
 		int n = 10;
-		uncompress_block_size = block_width * block_height * 4;
+
 		for (int i = 0; i < n; i++)
 		{
 
-			img = XGetImage(display, desktop, block_x, block_y, block_width,
+			new_img = XGetImage(display, desktop, block_x, block_y, block_width,
 					block_height, ~0,
 					ZPixmap);
+			uncompress_block_size = block_width * block_height * 4;
+			if ((block_data = (char*) malloc(uncompress_block_size)) == NULL)
+			{
+				printf("no enough memory!\n");
+				return -1;
+			}
+			if (GetDatablockFromXImage(new_img, block_data, block_x, block_y, block_width,
+					block_height) != 1)
+			{
+				printf("the GetDatablockFromXImage function has an error!\n");
+				return -1;
+			}
 
 			//压缩部分 计算缓冲区大小，并为其分配内存
 			blen = compressBound(uncompress_block_size);  //压缩后的长度是不会超过blen的
@@ -126,7 +223,7 @@ int CompressAndWrite(const char* filename)
 			}
 
 			//压缩
-			if (compress(buf, &blen, (unsigned char*) img->data,
+			if (compress(buf, &blen, (unsigned char*) block_data,
 					uncompress_block_size) != Z_OK)
 			{
 				printf("compress failed!\n");
@@ -135,10 +232,12 @@ int CompressAndWrite(const char* filename)
 
 			WriteBlockToDisk(buf, blen, fp, block_flag, block_x, block_y,
 					block_width, block_height);
-			if (buf != NULL)
+			if (buf != NULL || block_data != NULL)
 			{
 				free(buf);
-				fp = NULL;
+				free(block_data);
+				block_data = NULL;
+				buf = NULL;
 
 			}
 		}
@@ -147,28 +246,11 @@ int CompressAndWrite(const char* filename)
 
 	/* 释放内存 */
 	fclose(fp);
-	XDestroyImage(img);
+	XDestroyImage(base_img);
+	XDestroyImage(new_img);
 	XCloseDisplay(display);
 	fp = NULL;
 
-	return 1;
-
-}
-
-int ReadBlockFromDisk(void *buffer, size_t compressed_block_size, FILE* stream,
-		int * block_flag, unsigned int* block_x, unsigned int* block_y,
-		unsigned int* block_width, unsigned int* block_height)
-{
-	if ((*block_flag = fgetc(stream)) == EOF)
-	{
-		printf("read error or reach the file's end ！ ");
-		return 0;
-	}
-	fread(block_x, sizeof(unsigned int), 1, stream);
-	fread(block_y, sizeof(unsigned int), 1, stream);
-	fread(block_width, sizeof(unsigned int), 1, stream);
-	fread(block_height, sizeof(unsigned int), 1, stream);
-	fread(buffer, compressed_block_size, 1, stream);
 	return 1;
 
 }
@@ -291,7 +373,7 @@ int UncompressAndDisplay(const char* filename)
 int main()
 {
 
-	CompressAndWrite("./screen");
+	//CompressAndWrite("./screen");
 	UncompressAndDisplay("./screen");
 	printf(" Done.\n");
 
