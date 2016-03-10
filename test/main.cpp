@@ -60,24 +60,23 @@ int GetDatablockFromXImage(XImage* newimg, char* block_data,
 		unsigned int block_height)
 {
 	//block_data = (unsigned char*) malloc(block_height * block_width * 4);
-	int width =  (int)newimg->width;
+	int width = (int) newimg->width;
 	//unsigned int height = newimg->height;
 	unsigned int rightCornor_x = block_x + block_width;
 	unsigned int rightCornor_y = block_y + block_height;
-	char* p = newimg->data;
-	//printf("%c",&(newimg->data));
+	//char* p = newimg->data;
 	unsigned int t = 0;
 	for (unsigned int i = block_y; i < rightCornor_y; i++)
 	{
 		for (unsigned int j = block_x; j < rightCornor_x; j++)
 		{	//XGetPixel(newimg, j, i);
-			*(block_data + t) = *(p + (i * width + j) * 4);	//错误在于赋值
+			*(block_data + t) = *(newimg->data + (i * width + j) * 4);	//错误在于赋值
 			t++;
-			*(block_data + t) = *(p + (i * width + j) * 4+ 1);
+			*(block_data + t) = *(newimg->data + (i * width + j) * 4 + 1);
 			t++;
-			*(block_data + t) = *(p + (i * width + j) * 4+ 2);
+			*(block_data + t) = *(newimg->data + (i * width + j) * 4 + 2);
 			t++;
-			*(block_data + t) = *(p + (i * width + j) * 4+ 3);
+			*(block_data + t) = *(newimg->data + (i * width + j) * 4 + 3);
 			t++;
 		}
 	}
@@ -102,13 +101,13 @@ int PutDatablockToXImage(XImage* baseimg, char* block_data,
 	{
 		for (unsigned int j = block_x; j < rightCornor_x; j++)
 		{
-			*((baseimg->data) + (i * width + j) * 4 ) = *(block_data + t);
+			*(baseimg->data + (i * width + j) * 4) = *(block_data + t);
 			t++;
-			*((baseimg->data) + (i * width + j) * 4 + 1) = *(block_data + t);
+			*(baseimg->data + (i * width + j) * 4 + 1) = *(block_data + t);
 			t++;
-			*((baseimg->data) + (i * width + j) * 4 + 2) = *(block_data + t);
+			*(baseimg->data + (i * width + j) * 4 + 2) = *(block_data + t);
 			t++;
-			*((baseimg->data) + (i * width + j) * 4 + 3) = *(block_data + t);
+			*(baseimg->data + (i * width + j) * 4 + 3) = *(block_data + t);
 			t++;
 		}
 	}
@@ -206,8 +205,8 @@ int CompressAndWrite(const char* filename)
 				printf("no enough memory!\n");
 				return -1;
 			}
-			if (GetDatablockFromXImage(new_img, block_data, block_x, block_y, block_width,
-					block_height) != 1)
+			if (GetDatablockFromXImage(new_img, block_data, block_x, block_y,
+					block_width, block_height) != 1)
 			{
 				printf("the GetDatablockFromXImage function has an error!\n");
 				return -1;
@@ -261,6 +260,7 @@ int UncompressAndDisplay(const char* filename)
 	size_t compressed_block_size;
 	size_t uncompressed_block_size;
 	int block_flag;
+	int display_flag=0;
 	unsigned int block_x;
 	unsigned int block_y;
 	unsigned int block_width;
@@ -287,20 +287,25 @@ int UncompressAndDisplay(const char* filename)
 		printf("CaptureDesktop cannot get root window");
 		return 0;
 	}
-	Visual* visual = DefaultVisual(display, 0);
+
 	//Retrive the width and the height of the screen
 	unsigned int screen_width = DisplayWidth(display, 0);
 	unsigned int screen_height = DisplayHeight(display, 0);
 
 	Window window = XCreateSimpleWindow(display, desktop, 0, 0, screen_width,
 			screen_height, 1, 0, 0);
+	img = XGetImage(display, desktop, 0, 0, screen_width, screen_height, ~0,
+	ZPixmap);
+	/*	Visual* visual = DefaultVisual(display, 0);
+	  img = XCreateImage(display, visual, 24, ZPixmap, 0, NULL,
+	 screen_width, screen_height, 32, 0);*/
 
 	//start reading da from disk
 	while (1)
 	{
 		if (fread(&compressed_block_size, sizeof(size_t), 1, fp) == 0)
 		{
-			printf("reach the end of file or read error !\n");
+			printf("reach the end  or read error !\n");
 			return -1;
 		}
 		if ((buf = (unsigned char*) malloc(compressed_block_size)) == NULL)
@@ -327,15 +332,13 @@ int UncompressAndDisplay(const char* filename)
 			return -1;
 		}
 
-		img = XCreateImage(display, visual, 24, ZPixmap, 0, img_data,
-				block_width, block_height, 32, 0);
-
+		if(block_flag!=display_flag)
 		{ //用于显示图片 需修改
 			XSelectInput(display, window, ButtonPressMask | ExposureMask);
 			XMapWindow(display, window);
 			XEvent ev;
-			bool display_flag = true;
-			while (display_flag)
+			bool displayflag = true;
+			while (displayflag)
 			{
 
 				XNextEvent(display, &ev);
@@ -346,14 +349,19 @@ int UncompressAndDisplay(const char* filename)
 							block_x, block_y, block_width, block_height);
 					break;
 				case ButtonPress:
-					display_flag = false;
+					displayflag = false;
 					XUnmapWindow(display, window);
-
 				}
 			}
+			if(display_flag==0) display_flag=1;
+			else display_flag=0;
 		}
+
+		PutDatablockToXImage(img, img_data, block_x, block_y, block_width,
+				block_height);
 	}
 	/* 释放内存 */
+
 	fclose(fp);
 	XDestroyWindow(display, window);
 	XDestroyImage(img);
@@ -373,7 +381,7 @@ int UncompressAndDisplay(const char* filename)
 int main()
 {
 
-	CompressAndWrite("./screen");
+	//CompressAndWrite("./screen");
 	UncompressAndDisplay("./screen");
 	printf(" Done.\n");
 
