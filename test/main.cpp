@@ -142,10 +142,10 @@ int CaptureAndCompare(Display* display, Window desktop, XImage* baseimg,
 	int block_num = 0;	//the length of block_n
 	int screen_width = (int) baseimg->width;
 	int screen_height = (int) baseimg->height;
-	if (newimg != NULL)
+/*	if (newimg != NULL)
 		newimg = NULL;
 	newimg = XGetImage(display, desktop, 0, 0, screen_width, screen_height, ~0,
-	ZPixmap);
+	ZPixmap);*/
 	int tile_width = 64, tile_height = 64, i = 0, j = 0;
 	int n_x = (baseimg->width - 1) / tile_width + 1, tail_x = baseimg->width
 			- tile_width * (n_x - 1);
@@ -371,6 +371,7 @@ int CompressAndWrite(const char* filename)
 	}
 
 	/* 释放内存 */
+	fflush(fp);
 	fclose(fp);
 	XDestroyImage(base_img);
 	XCloseDisplay(display);
