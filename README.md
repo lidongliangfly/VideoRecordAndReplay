@@ -1,4 +1,4 @@
 # Video-recording-and-playback
-recording screen and storing in local disks to playback 
+For recording screen, storing in local disks and replaying.
 
-This is 
+This coed needs Xlib and zlib ,and is writen in ubuntu14.04 x64.
