@@ -1,6 +1,5 @@
 #include "VideoRecordAndReplayFunctions.h"
 
-
 int StartAndEndRecordTime(char *filename, int video_time_length)
 {
 	char record_start_time[20]; //starting recording time
@@ -103,9 +102,9 @@ int XImageDataCmp(char *s, char *d, int length)
 }
 
 int CaptureAndCompare(Display* display, Window desktop, XImage* baseimg,
-        XImage* newimg, unsigned int* block_n)
+		XImage* newimg, unsigned int* block_n)
 {
-    int block_num = 0,block_n_index=0;	//the length of block_n,新添加的指针索引变量block_n_index
+	int block_num = 0, block_n_index = 0;//the length of block_n,新添加的指针索引变量block_n_index
 	int screen_width = (int) baseimg->width;
 	//int screen_height = (int) baseimg->height;
 
@@ -114,8 +113,8 @@ int CaptureAndCompare(Display* display, Window desktop, XImage* baseimg,
 			- tile_width * (n_x - 1);
 	int n_y = (baseimg->height - 1) / tile_height + 1, tail_y = baseimg->height
 			- tile_height * (n_y - 1);
-    int tile_diff[n_x * n_y];	//save the next frame diff
-    //unsigned int tile_diff[264];
+	int tile_diff[n_x * n_y];	//save the next frame diff
+	//unsigned int tile_diff[264];
 	//compare 2 frames ,TileDiff
 	{
 		int k = 0, xx = 0, j, i;
@@ -165,45 +164,44 @@ int CaptureAndCompare(Display* display, Window desktop, XImage* baseimg,
 		for (j = 0; j < n_x - 1; j++)
 			if (tile_diff[i * n_x + j])
 			{
-                *(block_n+block_n_index++) = j * tile_width;    //x
-                *(block_n+block_n_index++) = i * tile_height;    //y
-                *(block_n+block_n_index++) = tile_width;    //w
-                *(block_n+block_n_index++) = tile_height;    //h
+				*(block_n + block_n_index++) = j * tile_width;    //x
+				*(block_n + block_n_index++) = i * tile_height;    //y
+				*(block_n + block_n_index++) = tile_width;    //w
+				*(block_n + block_n_index++) = tile_height;    //h
 			}
 		//the last column
 		if (tile_diff[i * n_x + j])
 		{
-            *(block_n+block_n_index++) = j * tile_width;    //x
-            *(block_n+block_n_index++) = i * tile_height;    //y
-            *(block_n+block_n_index++) = tail_x;    //;w
-            *(block_n+block_n_index++) = tile_height;    //h
+			*(block_n + block_n_index++) = j * tile_width;    //x
+			*(block_n + block_n_index++) = i * tile_height;    //y
+			*(block_n + block_n_index++) = tail_x;    //;w
+			*(block_n + block_n_index++) = tile_height;    //h
 		}
 	}
 	//the last line
 	for (j = 0; j < n_x - 1; j++)
 		if (tile_diff[i * n_x + j])
 		{
-            *(block_n+block_n_index++) = j * tile_width;    //x
-            *(block_n+block_n_index++) = i * tile_height;    //y
-            *(block_n+block_n_index++) = tile_width;    //w
-            *(block_n+block_n_index++) = tail_y;    //;h
+			*(block_n + block_n_index++) = j * tile_width;    //x
+			*(block_n + block_n_index++) = i * tile_height;    //y
+			*(block_n + block_n_index++) = tile_width;    //w
+			*(block_n + block_n_index++) = tail_y;    //;h
 		}
 	//the last block
 	if (tile_diff[i * n_x + j])
 	{
-        *(block_n+block_n_index++) = j * tile_width;    //x
-        *(block_n+block_n_index++) = i * tile_height;    //y
-        *(block_n+block_n_index++) = tail_x;    //;w
-        *(block_n+block_n_index++) = tail_y;    //;h
+		*(block_n + block_n_index++) = j * tile_width;    //x
+		*(block_n + block_n_index++) = i * tile_height;    //y
+		*(block_n + block_n_index++) = tail_x;    //;w
+		*(block_n + block_n_index++) = tail_y;    //;h
 	}
-/*    {    //进行区域合并
-		DiffBlock *head = NULL;
-        block_num = ConcatenateDiffBlocks(head, block_n, block_num*4);
-    }*/
+	    {    //进行区域合并
+	 DiffBlock *head = NULL;
+	 block_num = ConcatenateDiffBlocks(head, block_n, block_num*4);
+	 }
 
 	return block_num;  //返回block_n的长度(按block_x,block_y,block_width,block_height)
 }
-
 
 int CompressAndWrite(const char* filename, int frame_rate,
 		int video_time_length)

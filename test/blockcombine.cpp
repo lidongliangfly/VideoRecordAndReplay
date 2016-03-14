@@ -1,14 +1,6 @@
-#include <stdio.h>
-#include <malloc.h>
 
-struct DiffBlock
-{
-	unsigned int x;
-	unsigned int y;
-	unsigned int width;
-	unsigned int height;
-	struct DiffBlock * next;
-};
+#include "VideoRecordAndReplayFunctions.h"
+
 
 void SwapDiffBlockNode(DiffBlock *p1, DiffBlock *p2) // swap 2 nodes's data
 {

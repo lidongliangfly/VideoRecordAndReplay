@@ -25,7 +25,6 @@ int main()
 /*				UncompressAndDisplay("./20160314170247-20160314170317.hust",
 		 frame_rate);*/
 	}
-
 	printf("Done.\n"); //测试语句可删除
 
 	return 1;

@@ -1,7 +1,9 @@
+/*
 #ifndef BLOCKCOMBINE_H
 #define BLOCKCOMBINE_H
 
 #endif // BLOCKCOMBINE_H
+*/
 
 #include<stdio.h>
 #include<stdlib.h>
@@ -13,17 +15,7 @@
 #include<X11/Xutil.h>
 #include<zlib.h>
 
-
-struct DiffBlock
-{
-	unsigned int x;
-	unsigned int y;
-	unsigned int width;
-	unsigned int height;
-	struct DiffBlock * next;
-};
 ////////////////////////////记录函数
-
 
 int StartAndEndRecordTime(char *filename, int video_time_length);
 
@@ -39,14 +31,12 @@ int GetDatablockFromXImage(XImage* newimg, char* block_data,
 int XImageDataCmp(char *s, char *d, int length);
 
 int CaptureAndCompare(Display* display, Window desktop, XImage* baseimg,
-        XImage* newimg, unsigned int* block_n);
-
+		XImage* newimg, unsigned int* block_n);
 
 int CompressAndWrite(const char* filename, int frame_rate,
 		int video_time_length);
 
 ///////////////////////////////回播函数
-
 
 int ReadBlockFromDisk(void *buffer, size_t compressed_block_size, FILE* stream,
 		unsigned int * Frame_number, unsigned int* block_x,
@@ -57,11 +47,19 @@ int PutDatablockToXImage(XImage* baseimg, char* block_data,
 		unsigned int block_x, unsigned int block_y, unsigned int block_width,
 		unsigned int block_height);
 
-
 int UncompressAndDisplay(const char* filename, int frame_rate);
 
+/////////////////////合并函数
 
-/////////////////////
+struct DiffBlock
+{
+	unsigned int x;
+	unsigned int y;
+	unsigned int width;
+	unsigned int height;
+	struct DiffBlock * next;
+};
+
 void AscendingSortList(DiffBlock *head); //对链表进行选择排序(排序稳定)，结果为非递减顺序（排序成列优先）
 int ConcatenateDiffBlocks(DiffBlock *head, unsigned int* block_n,
 		int block_num);
