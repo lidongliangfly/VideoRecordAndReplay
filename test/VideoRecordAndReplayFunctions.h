@@ -24,6 +24,11 @@ int WriteBlockToDisk(const void* buffer, size_t compressed_block_size,
 		unsigned int block_y, unsigned int block_width,
 		unsigned int block_height);
 
+int gzWriteBlockToDisk(const void* buffer, size_t compressed_block_size,
+		gzFile stream, unsigned int Frame_number, unsigned int block_x,
+		unsigned int block_y, unsigned int block_width,
+		unsigned int block_height);
+
 int GetDatablockFromXImage(XImage* newimg, char* block_data,
 		unsigned int block_x, unsigned int block_y, unsigned int block_width,
 		unsigned int block_height);
@@ -40,6 +45,11 @@ int CompressAndWrite(const char* filename, int frame_rate,
 
 int ReadBlockFromDisk(void *buffer, size_t compressed_block_size, FILE* stream,
 		unsigned int * Frame_number, unsigned int* block_x,
+		unsigned int* block_y, unsigned int* block_width,
+		unsigned int* block_height);
+
+int gzReadBlockFromDisk(void *buffer, size_t compressed_block_size,
+		gzFile stream, unsigned int * Frame_number, unsigned int* block_x,
 		unsigned int* block_y, unsigned int* block_width,
 		unsigned int* block_height);
 

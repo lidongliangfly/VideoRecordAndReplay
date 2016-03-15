@@ -24,7 +24,7 @@ int StartAndEndRecordTime(char *filename, int video_time_length)
 			time_end->tm_min, time_end->tm_sec);
 
 	//filename format: starting recording time - the end of the recording time
-	sprintf(filename, "%s-%s%s", record_start_time, record_end_time, ".hust");
+	sprintf(filename, "%s-%s%s", record_start_time, record_end_time, ".hust.gz");
 	return 1;
 }
 
@@ -42,6 +42,28 @@ int WriteBlockToDisk(const void* buffer, size_t compressed_block_size,
 	nmemb += fwrite(&block_height, sizeof(unsigned int), 1, stream);
 	nmemb += fwrite(buffer, compressed_block_size, 1, stream);
 	if (nmemb == 7)
+		return nmemb;
+	else
+	{
+		printf("something wrong in WriteBlockToDisk!!!\n");
+		return 0;
+	}
+}
+
+int gzWriteBlockToDisk(const void* buffer, size_t compressed_block_size,
+		gzFile stream, unsigned int Frame_number, unsigned int block_x,
+		unsigned int block_y, unsigned int block_width,
+		unsigned int block_height)
+{ //compressed_block_size means the number of compressed data bytes
+	int nmemb = 0;
+	nmemb += gzwrite(stream,&compressed_block_size, sizeof(size_t));
+	nmemb += gzwrite(stream,&Frame_number, sizeof(unsigned int));
+	nmemb += gzwrite(stream,&block_x, sizeof(unsigned int));
+	nmemb += gzwrite(stream,&block_y, sizeof(unsigned int));
+	nmemb += gzwrite(stream,&block_width, sizeof(unsigned int));
+	nmemb += gzwrite(stream,&block_height, sizeof(unsigned int));
+	nmemb += gzwrite(stream,buffer, compressed_block_size);
+	if (nmemb == compressed_block_size+20+sizeof(size_t))
 		return nmemb;
 	else
 	{
@@ -195,7 +217,7 @@ int CaptureAndCompare(Display* display, Window desktop, XImage* baseimg,
 		*(block_n + block_n_index++) = tail_x;    //;w
 		*(block_n + block_n_index++) = tail_y;    //;h
 	}
-	    {    //进行区域合并
+	{    //进行区域合并
 	 DiffBlock *head = NULL;
 	 block_num = ConcatenateDiffBlocks(head, block_n, block_num*4);
 	 }
@@ -233,8 +255,9 @@ int CompressAndWrite(const char* filename, int frame_rate,
 		return 0;
 	}
 	//get the image of the root window
-	FILE *fp = fopen(filename, "wb");
-	if (fp == NULL)
+	//FILE *fp = fopen(filename, "wb");
+	gzFile gfp=gzopen(filename,"wb9"); //用于测试文件格式
+	if (gfp == false)
 	{
 		printf("could not open  file!!");
 		return 0;
@@ -270,7 +293,8 @@ int CompressAndWrite(const char* filename, int frame_rate,
 		if (Frame_number != 0 && block_num == 0)
 		{
 			size_t no_update = 0;
-			fwrite(&no_update, sizeof(size_t), 1, fp);
+			//fwrite(&no_update, sizeof(size_t), 1, fp);
+			gzwrite(gfp,&no_update,sizeof(size_t));//用于测试文件格式
 			continue;
 		}
 		if (Frame_number == 0)
@@ -323,8 +347,10 @@ int CompressAndWrite(const char* filename, int frame_rate,
 				return -1;
 			}
 
-			WriteBlockToDisk(buf, blen, fp, Frame_number, block_x, block_y,
-					block_width, block_height);
+/*			WriteBlockToDisk(buf, blen, fp, Frame_number, block_x, block_y,
+					block_width, block_height);*/
+			gzWriteBlockToDisk(buf, blen, gfp, Frame_number, block_x, block_y,
+					block_width, block_height);//用于测试文件格式
 			if (buf != NULL || block_data != NULL)
 			{
 				free(buf);
@@ -360,11 +386,13 @@ int CompressAndWrite(const char* filename, int frame_rate,
 	}
 
 	/* 释放内存 */
-	fflush(fp);
-	fclose(fp);
+	//fflush(fp);
+	//fclose(fp);
+	//fp = NULL;
+	gzclose(gfp);//用于测试文件格式
 	XDestroyImage(base_img);
 	XCloseDisplay(display);
-	fp = NULL;
+
 	printf("CompressAndWrite perform successfully!\n");
 	return 1;
 

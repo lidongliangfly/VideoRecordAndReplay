@@ -21,9 +21,9 @@ int main()
 	for (int i = 0; i < n; i++)
 	{
 		StartAndEndRecordTime(filename, video_time_length);
-		//CompressAndWrite(filename, frame_rate, video_time_length);
-				UncompressAndDisplay("./20160311150951-20160311151021.hust",
-		 frame_rate);
+		CompressAndWrite(filename, frame_rate, video_time_length);
+	/*			UncompressAndDisplay("./20160315194431-20160315194501.hust.gz",
+		 frame_rate);*/
 	}
 	printf("Done.\n"); //测试语句可删除
 
