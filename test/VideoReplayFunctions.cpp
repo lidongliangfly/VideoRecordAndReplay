@@ -8,7 +8,7 @@ int ReadBlockFromDisk(void *buffer, size_t compressed_block_size, FILE* stream,
 
 	if ((fread(Frame_number, sizeof(unsigned int), 1, stream)) != 1)
 	{
-		printf("read error or reach the file's end ！ ");
+		printf("read error or reach the file's end ！\n");
 		return 0;
 	}
 	fread(block_x, sizeof(unsigned int), 1, stream);
@@ -75,13 +75,13 @@ int UncompressAndDisplay(const char* filename, int frame_rate)
 	Display* display = XOpenDisplay(NULL); //connect to a local display
 	if (NULL == display)
 	{
-		printf("CaptureDesktop cannot get root window");
+		printf("CaptureDesktop cannot get root window\n");
 		return 0;
 	}
 	Window desktop = RootWindow(display, 0); //refer to root window
 	if (desktop == 0)
 	{
-		printf("CaptureDesktop cannot get root window");
+		printf("CaptureDesktop cannot get root window\n");
 		return 0;
 	}
 

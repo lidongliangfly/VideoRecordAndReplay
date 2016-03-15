@@ -152,7 +152,7 @@ int CaptureAndCompare(Display* display, Window desktop, XImage* baseimg,
 	if (!block_num)
 		return 0;
 	//if 更新基础帧
-	if (block_num >= (n_x * n_y * 0.7))
+	if (block_num >= (n_x * n_y * 0.5))
 	{
 		XDestroyImage(baseimg);
 		baseimg = newimg;
