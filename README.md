@@ -11,7 +11,7 @@ sudo apt-get install linx11-dev
 sudo apt-get install zlib1g-dev
 ```
 
-- If you want to run in linux **x86**, you need install Xlib and zlib for 32 bits.
+- If you want to run in **Ubuntu x86**, you need install Xlib and zlib for 32 bits.
 in ubuntu tty use below comands:
 
 ```#shell
