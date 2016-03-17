@@ -18,7 +18,8 @@ int main()
 	int video_time_length = 0.5 * 60; //the totle time of each video, units are seconds
 
 	int n = 1;
-	for (int i = 0; i < n; i++)
+	int i=0;
+	for (i = 0; i < n; i++)
 	{
 		StartAndEndRecordTime(filename, video_time_length);
 		CompressAndWrite(filename, frame_rate, video_time_length);

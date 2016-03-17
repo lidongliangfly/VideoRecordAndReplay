@@ -24,7 +24,7 @@ int WriteBlockToDisk(const void* buffer, size_t compressed_block_size,
 		unsigned int block_y, unsigned int block_width,
 		unsigned int block_height);
 
-int gzWriteBlockToDisk(const void* buffer, size_t compressed_block_size,
+int gzWriteBlockToDisk(const void* buffer, unsigned long compressed_block_size,
 		gzFile stream, unsigned int Frame_number, unsigned int block_x,
 		unsigned int block_y, unsigned int block_width,
 		unsigned int block_height);
@@ -48,7 +48,7 @@ int ReadBlockFromDisk(void *buffer, size_t compressed_block_size, FILE* stream,
 		unsigned int* block_y, unsigned int* block_width,
 		unsigned int* block_height);
 
-int gzReadBlockFromDisk(void *buffer, size_t compressed_block_size,
+int gzReadBlockFromDisk(void *buffer, unsigned long compressed_block_size,
 		gzFile stream, unsigned int * Frame_number, unsigned int* block_x,
 		unsigned int* block_y, unsigned int* block_width,
 		unsigned int* block_height);
@@ -70,11 +70,11 @@ struct DiffBlock
 	struct DiffBlock * next;
 };
 
-void AscendingSortList(DiffBlock *head); //对链表进行选择排序(排序稳定)，结果为非递减顺序（排序成列优先）
-int ConcatenateDiffBlocks(DiffBlock *head, unsigned int* block_n,
+void AscendingSortList(struct DiffBlock *head); //对链表进行选择排序(排序稳定)，结果为非递减顺序（排序成列优先）
+int ConcatenateDiffBlocks(struct DiffBlock *head, unsigned int* block_n,
 		int block_num);
-void CreateList(DiffBlock **head, unsigned int A[], int length); //创建不含头结点的单向链表
-int ListConvertToArray(DiffBlock *head, unsigned int* block_n);
-DiffBlock * ConcatenateNodes_x(DiffBlock **headp); //合并横向右相邻的块
-DiffBlock * ConcatenateNodes_y(DiffBlock **headp); //合并纵向相邻的块
-void SwapDiffBlockNode(DiffBlock *p1, DiffBlock *p2); // swap 2 nodes's data
+void CreateList(struct DiffBlock **head, unsigned int A[], int length); //创建不含头结点的单向链表
+int ListConvertToArray(struct DiffBlock *head, unsigned int* block_n);
+struct DiffBlock * ConcatenateNodes_x(struct DiffBlock **headp); //合并横向右相邻的块
+struct DiffBlock * ConcatenateNodes_y(struct DiffBlock **headp); //合并纵向相邻的块
+void SwapDiffBlockNode(struct DiffBlock *p1, struct DiffBlock *p2); // swap 2 nodes's data

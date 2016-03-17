@@ -20,7 +20,7 @@ int ReadBlockFromDisk(void *buffer, size_t compressed_block_size, FILE* stream,
 
 }
 
-int gzReadBlockFromDisk(void *buffer, size_t compressed_block_size,
+int gzReadBlockFromDisk(void *buffer, unsigned long compressed_block_size,
 		gzFile stream, unsigned int * Frame_number, unsigned int* block_x,
 		unsigned int* block_y, unsigned int* block_width,
 		unsigned int* block_height)
@@ -48,10 +48,12 @@ int PutDatablockToXImage(XImage* baseimg, char* block_data,
 	//unsigned int height = baseimg->height;
 	unsigned int rightCornor_x = block_x + block_width;
 	unsigned int rightCornor_y = block_y + block_height;
-	unsigned int t = 0;
-	for (unsigned int i = block_y; i < rightCornor_y; i++)
+	unsigned int t = 0; //指针数据变量
+	unsigned int i = 0; //高
+	unsigned int j = 0; //宽
+	for (i = block_y; i < rightCornor_y; i++)
 	{
-		for (unsigned int j = block_x; j < rightCornor_x; j++)
+		for (j = block_x; j < rightCornor_x; j++)
 		{
 			*(baseimg->data + (i * width + j) * 4) = *(block_data + t);
 			t++;
@@ -74,8 +76,8 @@ int PutDatablockToXImage(XImage* baseimg, char* block_data,
 int UncompressAndDisplay(const char* filename, int frame_rate)
 {
 
-	size_t compressed_block_size;
-	size_t uncompressed_block_size;
+	unsigned long compressed_block_size;
+	unsigned long uncompressed_block_size;
 	unsigned int Frame_number;
 	int display_flag = -1;
 	unsigned int block_x;
@@ -87,8 +89,8 @@ int UncompressAndDisplay(const char* filename, int frame_rate)
 	char* img_data = NULL;
 	XImage* img;
 	//FILE *fp = fopen(filename, "rb");
-	gzFile gfp=gzopen(filename,"rb"); //用于测试文件格式
-	if (gfp == false)
+	gzFile gfp = gzopen(filename, "rb"); //用于测试文件格式
+	if (gfp == 0)
 	{
 		printf("could not open file: %s !!\n", filename);
 		return 0;
@@ -118,16 +120,16 @@ int UncompressAndDisplay(const char* filename, int frame_rate)
 	//start reading data from disk
 	while (1)
 	{
-/*		if (fread(&compressed_block_size, sizeof(size_t), 1, fp) == 0)
+		/*		if (fread(&compressed_block_size, sizeof(size_t), 1, fp) == 0)
+		 {
+		 printf("reach the end  or read error !\n");
+		 return -1;
+		 }*/
+		if (gzread(gfp, &compressed_block_size, sizeof(unsigned long)) == 0)
 		{
 			printf("reach the end  or read error !\n");
 			return -1;
-		}*/
-		if (gzread(gfp,&compressed_block_size, sizeof(size_t)) == 0)
-		{
-			printf("reach the end  or read error !\n");
-			return -1;
-		}//用于测试文件格式
+		} //用于测试文件格式
 		if (compressed_block_size == 0)
 			continue;
 		if ((buf = (unsigned char*) malloc(compressed_block_size)) == NULL)
@@ -136,10 +138,10 @@ int UncompressAndDisplay(const char* filename, int frame_rate)
 			return -1;
 		}
 		//读数据
-/*		ReadBlockFromDisk(buf, compressed_block_size, fp, &Frame_number,
-				&block_x, &block_y, &block_width, &block_height);*/
+		/*		ReadBlockFromDisk(buf, compressed_block_size, fp, &Frame_number,
+		 &block_x, &block_y, &block_width, &block_height);*/
 		gzReadBlockFromDisk(buf, compressed_block_size, gfp, &Frame_number,
-				&block_x, &block_y, &block_width, &block_height);//用于测试文件格式
+				&block_x, &block_y, &block_width, &block_height); //用于测试文件格式
 		if ((img_data = (char*) malloc((block_width) * (block_height) * 4))
 				== NULL)
 		{

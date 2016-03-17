@@ -2,7 +2,7 @@
 #include "VideoRecordAndReplayFunctions.h"
 
 
-void SwapDiffBlockNode(DiffBlock *p1, DiffBlock *p2) // swap 2 nodes's data
+void SwapDiffBlockNode(struct DiffBlock *p1, struct DiffBlock *p2) // swap 2 nodes's data
 {
 	int tmp;
 	tmp = p1->x;
@@ -19,13 +19,13 @@ void SwapDiffBlockNode(DiffBlock *p1, DiffBlock *p2) // swap 2 nodes's data
 	p2->height = tmp;
 }
 
-void CreateList(DiffBlock **head, unsigned int *A, int length) //创建不含头结点的单向链表
+void CreateList(struct DiffBlock **head, unsigned int *A, int length) //创建不含头结点的单向链表
 {
-	DiffBlock *loc_head = NULL, *tail;
+	struct DiffBlock *loc_head = NULL, *tail;
 	int i = 0; //新添加的指针索引变量
 	if (length && (A + i) && (A + i + 1) && (A + i + 2) && (A + i + 3))
 	{
-		loc_head = (DiffBlock*) malloc(sizeof(DiffBlock));
+		loc_head = (struct DiffBlock*) malloc(sizeof(struct DiffBlock));
 		loc_head->next = NULL;
 		loc_head->x = *(A + i++);
 		loc_head->y = *(A + i++);
@@ -35,7 +35,7 @@ void CreateList(DiffBlock **head, unsigned int *A, int length) //创建不含头
 		while (i < length)
 			if ((A + i) && (A + i + 1) && (A + i + 2) && (A + i + 3))
 			{
-				tail->next = (DiffBlock*) malloc(sizeof(DiffBlock));
+				tail->next = (struct DiffBlock*) malloc(sizeof(struct DiffBlock));
 				tail = tail->next;
 				tail->x = *(A + i++);
 				tail->y = *(A + i++);
@@ -47,9 +47,9 @@ void CreateList(DiffBlock **head, unsigned int *A, int length) //创建不含头
 	*head = loc_head;
 }
 
-DiffBlock * ConcatenateNodes_x(DiffBlock **headp) //合并横向右相邻的块
+struct DiffBlock * ConcatenateNodes_x(struct DiffBlock **headp) //合并横向右相邻的块
 {
-	DiffBlock *head = *headp, *current = *headp, *next = NULL;
+	struct DiffBlock *head = *headp, *current = *headp, *next = NULL;
 	while (current)
 	{
 		next = current->next;
@@ -76,9 +76,9 @@ DiffBlock * ConcatenateNodes_x(DiffBlock **headp) //合并横向右相邻的块
  if(p1->x > p2->x) SwapDiffBlockNode(p1,p2);
  }*/
 
-void AscendingSortList(DiffBlock *head) //对链表进行冒泡排序(排序稳定)，结果为非递减顺序（排序成列优先）
+void AscendingSortList(struct DiffBlock *head) //对链表进行冒泡排序(排序稳定)，结果为非递减顺序（排序成列优先）
 {
-	DiffBlock *p1 = head, *p2;
+	struct DiffBlock *p1 = head, *p2;
 	int len = 0, i, j;
 	while (p1)
 	{
@@ -91,9 +91,9 @@ void AscendingSortList(DiffBlock *head) //对链表进行冒泡排序(排序稳�
 				SwapDiffBlockNode(p2, (p2->next)); //当前节点比后继节点数据大 交换
 }
 
-DiffBlock * ConcatenateNodes_y(DiffBlock **headp) //合并纵向相邻的块
+struct DiffBlock * ConcatenateNodes_y(struct DiffBlock **headp) //合并纵向相邻的块
 {
-	DiffBlock *head = *headp, *current = *headp, *next = NULL;
+	struct DiffBlock *head = *headp, *current = *headp, *next = NULL;
 	while (current)
 	{
 		next = current->next;
@@ -112,9 +112,9 @@ DiffBlock * ConcatenateNodes_y(DiffBlock **headp) //合并纵向相邻的块
 	return head;
 }
 
-int ListConvertToArray(DiffBlock *head, unsigned int* block_n)
+int ListConvertToArray(struct DiffBlock *head, unsigned int* block_n)
 {
-	DiffBlock *p;
+	struct DiffBlock *p;
 	int length = 0, i = 0;            //新添加的指针索引变量i
 	p = head;
 	while (p)
@@ -129,7 +129,7 @@ int ListConvertToArray(DiffBlock *head, unsigned int* block_n)
 	return length;
 }
 
-int ConcatenateDiffBlocks(DiffBlock *head, unsigned int* block_n, int block_num)
+int ConcatenateDiffBlocks(struct DiffBlock *head, unsigned int* block_n, int block_num)
 {
 	CreateList(&head, block_n, block_num);
 	ConcatenateNodes_x(&head);
