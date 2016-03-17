@@ -127,7 +127,7 @@ int UncompressAndDisplay(const char* filename, int frame_rate)
 		 }*/
 		if (gzread(gfp, &compressed_block_size, sizeof(unsigned long)) == 0)
 		{
-			printf("reach the end  or read error !\n");
+			printf("reach the end of file!\n(or read error).\n");
 			return -1;
 		} //用于测试文件格式
 		if (compressed_block_size == 0)

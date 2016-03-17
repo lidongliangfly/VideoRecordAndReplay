@@ -285,7 +285,7 @@ int CompressAndWrite(const char* filename, int frame_rate,
 				~0,
 				ZPixmap);
 		unsigned int* block_parameter;
-		int i=0;//处理blocks循环变量
+		int i = 0; //处理blocks循环变量
 		if ((block_parameter = (unsigned int*) malloc(2200)) == NULL)
 		{
 			printf("no enough memory!\n");
@@ -398,7 +398,7 @@ int CompressAndWrite(const char* filename, int frame_rate,
 	XDestroyImage(base_img);
 	XCloseDisplay(display);
 
-	printf("CompressAndWrite perform successfully!\n");
+	printf("CompressAndWrite performs successfully!\n");
 	return 1;
 
 }

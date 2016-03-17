@@ -1,6 +1,4 @@
-
 #include "VideoRecordAndReplayFunctions.h"
-
 
 void SwapDiffBlockNode(struct DiffBlock *p1, struct DiffBlock *p2) // swap 2 nodes's data
 {
@@ -35,7 +33,8 @@ void CreateList(struct DiffBlock **head, unsigned int *A, int length) //创建�
 		while (i < length)
 			if ((A + i) && (A + i + 1) && (A + i + 2) && (A + i + 3))
 			{
-				tail->next = (struct DiffBlock*) malloc(sizeof(struct DiffBlock));
+				tail->next = (struct DiffBlock*) malloc(
+						sizeof(struct DiffBlock));
 				tail = tail->next;
 				tail->x = *(A + i++);
 				tail->y = *(A + i++);
@@ -65,16 +64,6 @@ struct DiffBlock * ConcatenateNodes_x(struct DiffBlock **headp) //合并横向�
 	}
 	return head;
 }
-
-/*void AscendingSortList(DiffBlock *head)//对链表进行选择排序(排序不稳定)，结果为非递减顺序（排序成列优先）
- {
- DiffBlock *p1=head,*p2;
- int len=0,i,j;
- while(p1)   {len++;p1=p1->next;}
- for(i=0,p1=head;i<len-1;i++,p1=p1->next)
- for(j=i+1,p2=p1->next;j<len;j++,p2=p2->next)
- if(p1->x > p2->x) SwapDiffBlockNode(p1,p2);
- }*/
 
 void AscendingSortList(struct DiffBlock *head) //对链表进行冒泡排序(排序稳定)，结果为非递减顺序（排序成列优先）
 {
@@ -129,7 +118,8 @@ int ListConvertToArray(struct DiffBlock *head, unsigned int* block_n)
 	return length;
 }
 
-int ConcatenateDiffBlocks(struct DiffBlock *head, unsigned int* block_n, int block_num)
+int ConcatenateDiffBlocks(struct DiffBlock *head, unsigned int* block_n,
+		int block_num)
 {
 	CreateList(&head, block_n, block_num);
 	ConcatenateNodes_x(&head);

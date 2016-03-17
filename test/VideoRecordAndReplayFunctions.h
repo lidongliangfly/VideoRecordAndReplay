@@ -1,9 +1,9 @@
 /*
-#ifndef BLOCKCOMBINE_H
-#define BLOCKCOMBINE_H
+ #ifndef BLOCKCOMBINE_H
+ #define BLOCKCOMBINE_H
 
-#endif // BLOCKCOMBINE_H
-*/
+ #endif // BLOCKCOMBINE_H
+ */
 
 #include<stdio.h>
 #include<stdlib.h>
