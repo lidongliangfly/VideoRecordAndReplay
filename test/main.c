@@ -20,7 +20,7 @@ int main()
 	for (i = 0; i < n; i++)
 	{
 		StartAndEndRecordTime(filename, video_time_length);
-		CompressAndWrite(filename, frame_rate, video_time_length);
+		CompressAndWrite(filename, frame_rate, video_time_length,	NULL);
 		/*		UncompressAndDisplay("./20160317110503-20160317110533.hust.gz",
 		 frame_rate);*/
 	}

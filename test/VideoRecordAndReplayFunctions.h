@@ -32,7 +32,7 @@ int CaptureAndCompare(Display* display, Window desktop, XImage* baseimg,
 		XImage* newimg, unsigned int* block_n);
 
 int CompressAndWrite(const char* filename, int frame_rate,
-		int video_time_length, const char* SeverIpAddress = NULL);
+		int video_time_length, const char* SeverIpAddress );
 
 ///////////////////////////////回播函数
 
