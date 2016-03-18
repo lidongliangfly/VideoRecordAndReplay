@@ -229,7 +229,7 @@ int CaptureAndCompare(Display* display, Window desktop, XImage* baseimg,
 }
 
 int CompressAndWrite(const char* filename, int frame_rate,
-		int video_time_length)
+		int video_time_length, const char* SeverIpAddress)
 {
 	Window desktop;
 	Display* display;
@@ -285,7 +285,7 @@ int CompressAndWrite(const char* filename, int frame_rate,
 				~0,
 				ZPixmap);
 		unsigned int* block_parameter;
-		int i = 0; //处理blocks循环变量
+		int i = 0; //处理blocks的循环变量
 		if ((block_parameter = (unsigned int*) malloc(2200)) == NULL)
 		{
 			printf("no enough memory!\n");
@@ -351,9 +351,12 @@ int CompressAndWrite(const char* filename, int frame_rate,
 				printf("compress failed!\n");
 				return -1;
 			}
-
 			/*			WriteBlockToDisk(buf, blen, fp, Frame_number, block_x, block_y,
 			 block_width, block_height);*/
+			if (SeverIpAddress != NULL)
+			{  //直播传输
+
+			}
 			gzWriteBlockToDisk(buf, blen, gfp, Frame_number, block_x, block_y,
 					block_width, block_height);  //用于测试文件格式
 			if (buf != NULL || block_data != NULL)
