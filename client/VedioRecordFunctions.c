@@ -1,7 +1,6 @@
 #include "VideoRecordAndReplayFunctions.h"
 
-int StartAndEndRecordTime(char *filename, int video_time_length)
-{
+int StartAndEndRecordTime(char *filename, int video_time_length) {
 	char record_start_time[20]; //starting recording time
 	char record_end_time[20]; //the end of the recording time
 	time_t time_now;
@@ -30,13 +29,12 @@ int StartAndEndRecordTime(char *filename, int video_time_length)
 }
 
 int WriteBlockToDisk(const void* buffer, size_t compressed_block_size,
-		FILE* stream, unsigned int Frame_number, unsigned int block_x,
+		FILE* stream, unsigned int block_timestamp, unsigned int block_x,
 		unsigned int block_y, unsigned int block_width,
-		unsigned int block_height)
-{ //compressed_block_size means the number of compressed data bytes
+		unsigned int block_height) { //compressed_block_size means the number of compressed data bytes
 	int nmemb = 0;
 	nmemb += fwrite(&compressed_block_size, sizeof(size_t), 1, stream);
-	nmemb += fwrite(&Frame_number, sizeof(unsigned int), 1, stream);
+	nmemb += fwrite(&block_timestamp, sizeof(unsigned int), 1, stream);
 	nmemb += fwrite(&block_x, sizeof(unsigned int), 1, stream);
 	nmemb += fwrite(&block_y, sizeof(unsigned int), 1, stream);
 	nmemb += fwrite(&block_width, sizeof(unsigned int), 1, stream);
@@ -44,21 +42,19 @@ int WriteBlockToDisk(const void* buffer, size_t compressed_block_size,
 	nmemb += fwrite(buffer, compressed_block_size, 1, stream);
 	if (nmemb == 7)
 		return nmemb;
-	else
-	{
+	else {
 		printf("something wrong in WriteBlockToDisk!!!\n");
 		return 0;
 	}
 }
 
 int gzWriteBlockToDisk(const void* buffer, unsigned long compressed_block_size,
-		gzFile stream, unsigned int Frame_number, unsigned int block_x,
+		gzFile stream, unsigned int block_timestamp, unsigned int block_x,
 		unsigned int block_y, unsigned int block_width,
-		unsigned int block_height)
-{ //compressed_block_size means the number of compressed data bytes
+		unsigned int block_height) { //compressed_block_size means the number of compressed data bytes
 	int nmemb = 0;
 	nmemb += gzwrite(stream, &compressed_block_size, sizeof(unsigned long));
-	nmemb += gzwrite(stream, &Frame_number, sizeof(unsigned int));
+	nmemb += gzwrite(stream, &block_timestamp, sizeof(unsigned int));
 	nmemb += gzwrite(stream, &block_x, sizeof(unsigned int));
 	nmemb += gzwrite(stream, &block_y, sizeof(unsigned int));
 	nmemb += gzwrite(stream, &block_width, sizeof(unsigned int));
@@ -66,8 +62,7 @@ int gzWriteBlockToDisk(const void* buffer, unsigned long compressed_block_size,
 	nmemb += gzwrite(stream, buffer, compressed_block_size);
 	if (nmemb == compressed_block_size + 20 + sizeof(unsigned long))
 		return nmemb;
-	else
-	{
+	else {
 		printf("something wrong in WriteBlockToDisk!!!\n");
 		return 0;
 	}
@@ -75,8 +70,7 @@ int gzWriteBlockToDisk(const void* buffer, unsigned long compressed_block_size,
 
 int GetDatablockFromXImage(XImage* newimg, char* block_data,
 		unsigned int block_x, unsigned int block_y, unsigned int block_width,
-		unsigned int block_height)
-{
+		unsigned int block_height) {
 
 	int width = (int) newimg->width;
 	//unsigned int height = newimg->height;
@@ -86,10 +80,8 @@ int GetDatablockFromXImage(XImage* newimg, char* block_data,
 	unsigned int rightCornor_y = block_y + block_height;
 	char* p = newimg->data;
 	unsigned int t = 0;
-	for (i = block_y; i < rightCornor_y; i++)
-	{
-		for (j = block_x; j < rightCornor_x; j++)
-		{
+	for (i = block_y; i < rightCornor_y; i++) {
+		for (j = block_x; j < rightCornor_x; j++) {
 			*(block_data + t) = *(p + (i * width + j) * 4);
 			t++;
 			*(block_data + t) = *(p + (i * width + j) * 4 + 1);
@@ -100,35 +92,30 @@ int GetDatablockFromXImage(XImage* newimg, char* block_data,
 			t++;
 		}
 	}
-	if (t != block_width * block_height * 4)
-	{
+	if (t != block_width * block_height * 4) {
 		printf("GetDatablockFromXImage inside write error !\n");
 		return -1;
 	}
 	return 1;
 }
 
-int XImageDataCmp(char *s, char *d, int length)
-{
+int XImageDataCmp(char *s, char *d, int length) {
 	int i = 0, r = -1;
-	for (; i < length; i++)
-	{
-		if (*(s + i) ^ *(d + i))
-		{	//两个字符相异
+	for (; i < length; i++) {
+		if (*(s + i) ^ *(d + i)) {	//两个字符相异
 			r = 1;
 			break;
 		}
 	}
 	if (i == length)	//字符串比较完，且完全相同
-	{
+			{
 		r = 0;
 	}
 	return r;
 }
 
 int CaptureAndCompare(Display* display, Window desktop, XImage* baseimg,
-		XImage* newimg, unsigned int* block_n)
-{
+		XImage* newimg, unsigned int* block_n) {
 	int block_num = 0, block_n_index = 0;//the length of block_n,新添加的指针索引变量block_n_index
 	int screen_width = (int) baseimg->width;
 	//int screen_height = (int) baseimg->height;
@@ -144,8 +131,7 @@ int CaptureAndCompare(Display* display, Window desktop, XImage* baseimg,
 	{
 		int k = 0, xx = 0, j, i;
 		srand((int) time(NULL));
-		for (i = 0; i < n_y - 1; i++)
-		{
+		for (i = 0; i < n_y - 1; i++) {
 			j = (int) (((float) tile_height) * rand() / RAND_MAX)
 					+ tile_height * i;    //the scan line
 			for (xx = 0; xx < n_x - 1; xx++)
@@ -177,26 +163,22 @@ int CaptureAndCompare(Display* display, Window desktop, XImage* baseimg,
 	if (!block_num)
 		return 0;
 	//if 更新基础帧
-	if (block_num >= (n_x * n_y * 0.5))
-	{
+	if (block_num >= (n_x * n_y * 0.5)) {
 		XDestroyImage(baseimg);
 		baseimg = newimg;
 		return 1;    //更新基础帧
 	}
 	//这里是函数体，比较不同并保存(按block_x,block_y,block_width,block_height)数据在block_n
-	for (i = 0; i < n_y - 1; i++)
-	{
+	for (i = 0; i < n_y - 1; i++) {
 		for (j = 0; j < n_x - 1; j++)
-			if (tile_diff[i * n_x + j])
-			{
+			if (tile_diff[i * n_x + j]) {
 				*(block_n + block_n_index++) = j * tile_width;    //x
 				*(block_n + block_n_index++) = i * tile_height;    //y
 				*(block_n + block_n_index++) = tile_width;    //w
 				*(block_n + block_n_index++) = tile_height;    //h
 			}
 		//the last column
-		if (tile_diff[i * n_x + j])
-		{
+		if (tile_diff[i * n_x + j]) {
 			*(block_n + block_n_index++) = j * tile_width;    //x
 			*(block_n + block_n_index++) = i * tile_height;    //y
 			*(block_n + block_n_index++) = tail_x;    //;w
@@ -205,16 +187,14 @@ int CaptureAndCompare(Display* display, Window desktop, XImage* baseimg,
 	}
 	//the last line
 	for (j = 0; j < n_x - 1; j++)
-		if (tile_diff[i * n_x + j])
-		{
+		if (tile_diff[i * n_x + j]) {
 			*(block_n + block_n_index++) = j * tile_width;    //x
 			*(block_n + block_n_index++) = i * tile_height;    //y
 			*(block_n + block_n_index++) = tile_width;    //w
 			*(block_n + block_n_index++) = tail_y;    //;h
 		}
 	//the last block
-	if (tile_diff[i * n_x + j])
-	{
+	if (tile_diff[i * n_x + j]) {
 		*(block_n + block_n_index++) = j * tile_width;    //x
 		*(block_n + block_n_index++) = i * tile_height;    //y
 		*(block_n + block_n_index++) = tail_x;    //;w
@@ -229,13 +209,13 @@ int CaptureAndCompare(Display* display, Window desktop, XImage* baseimg,
 }
 
 int CompressAndWrite(const char* filename, int frame_rate,
-		int video_time_length, const char* SeverIpAddress)
-{
+		int video_time_length) {
 	Window desktop;
 	Display* display;
 	XImage* base_img;
 	XImage* new_img;
 	unsigned int Frame_number = 0;
+	unsigned int block_timestamp = 0;
 	unsigned int block_x;
 	unsigned int block_y;
 	unsigned int block_width;
@@ -246,22 +226,19 @@ int CompressAndWrite(const char* filename, int frame_rate,
 	int block_num = 0;
 	char* block_data = NULL;
 	display = XOpenDisplay(NULL); //connect to a local display
-	if (NULL == display)
-	{
+	if (NULL == display) {
 		printf("CaptureDesktop cannot get root window");
 		return 0;
 	}
 	desktop = RootWindow(display, 0); //refer to root window
-	if (desktop == 0)
-	{
+	if (desktop == 0) {
 		printf("CaptureDesktop cannot get root window");
 		return 0;
 	}
 	//get the image of the root window
 	//FILE *fp = fopen(filename, "wb");
 	gzFile gfp = gzopen(filename, "wb9"); //用于测试文件格式
-	if (gfp == 0)
-	{
+	if (gfp == 0) {
 		printf("could not open  file!!");
 		return 0;
 	}
@@ -272,37 +249,37 @@ int CompressAndWrite(const char* filename, int frame_rate,
 			ZPixmap);
 	/* new_img = XCreateImage(display, DefaultVisual(display, 0), 24, ZPixmap, 0,
 	 NULL, screen_width, screen_height, 32, 0);*/
-	time_t start_time, end_time;
-	time(&start_time);
 	struct timeval start_tv;
+	struct timeval frame_tv;
+	struct timeval current_tv;
 	gettimeofday(&start_tv, NULL);
 	//printf("%s", ctime(&start_time));
 	int x = 0; //测试用，可删除
-	while (1)
-	{ //控制帧率的块
+	while (1) { //控制帧率的块
 		x += block_num; //测试用，可删除
 		new_img = XGetImage(display, desktop, 0, 0, screen_width, screen_height,
 				~0,
 				ZPixmap);
+		gettimeofday(&frame_tv, NULL);
+		block_timestamp = (frame_tv.tv_sec - start_tv.tv_sec) * 1000
+				+ (int) ((frame_tv.tv_usec - start_tv.tv_usec) / 1000);
+
 		unsigned int* block_parameter;
-		int i = 0; //处理blocks的循环变量
-		if ((block_parameter = (unsigned int*) malloc(2200)) == NULL)
-		{
+		int i = 0; //处理blocks循环变量
+		if ((block_parameter = (unsigned int*) malloc(2200)) == NULL) {
 			printf("no enough memory!\n");
 			return -1;
 		}
 		block_num = CaptureAndCompare(display, desktop, base_img, new_img,
 				block_parameter);
 
-		if (Frame_number != 0 && block_num == 0)
-		{
+		if (Frame_number != 0 && block_num == 0) {
 			size_t no_update = 0;
 			//fwrite(&no_update, sizeof(size_t), 1, fp);
 			gzwrite(gfp, &no_update, sizeof(size_t)); //用于测试文件格式
 			continue;
 		}
-		if (Frame_number == 0)
-		{
+		if (Frame_number == 0) {
 			block_num = 1;
 			block_x = 0;
 			block_y = 0;
@@ -310,62 +287,52 @@ int CompressAndWrite(const char* filename, int frame_rate,
 			block_height = screen_height;
 		}
 
-		for (i = 0; i < block_num; i++)
-		{
-			if (Frame_number != 0)
-			{ //赋值给block变量
+		for (i = 0; i < block_num; i++) {
+			if (Frame_number != 0) { //赋值给block变量
 				block_x = *(block_parameter + i * 4);
 				block_y = *(block_parameter + i * 4 + 1);
 				block_width = *(block_parameter + i * 4 + 2);
 				block_height = *(block_parameter + i * 4 + 3);
-				printf("%d %d %d %d 帧号:%d 块数:%d\n", block_x, block_y,
-						block_width, block_height, Frame_number, x);
+				printf("%d %d %d %d time:%d 块数:%d\n", block_x, block_y,
+						block_width, block_height, block_timestamp, x);
 			}
 
 			uncompress_block_size = block_width * block_height * 4;
-			if ((block_data = (char*) malloc(uncompress_block_size)) == NULL)
-			{
+			if ((block_data = (char*) malloc(uncompress_block_size)) == NULL) {
 				printf("no enough memory!\n");
 				return -1;
 			}
 			if (GetDatablockFromXImage(new_img, block_data, block_x, block_y,
-					block_width, block_height) != 1)
-			{
+					block_width, block_height) != 1) {
 				printf("the GetDatablockFromXImage function has an error!\n");
 				return -1;
 			}
-
+			PutDatablockToXImage(base_img, block_data, block_x, block_y,
+					block_width, block_height);
 			//压缩部分 计算缓冲区大小，并为其分配内存
 			blen = compressBound(uncompress_block_size);  //压缩后的长度是不会超过blen的
 			if ((buf = (unsigned char*) malloc(sizeof(unsigned char) * blen))
-					== NULL)
-			{
+					== NULL) {
 				printf("no enough memory!\n");
 				return -1;
 			}
 
 			//压缩
 			if (compress(buf, &blen, (unsigned char*) block_data,
-					uncompress_block_size) != Z_OK)
-			{
+					uncompress_block_size) != Z_OK) {
 				printf("compress failed!\n");
 				return -1;
 			}
-			/*			WriteBlockToDisk(buf, blen, fp, Frame_number, block_x, block_y,
-			 block_width, block_height);*/
-			if (SeverIpAddress != NULL)
-			{  //直播传输
 
-			}
-			gzWriteBlockToDisk(buf, blen, gfp, Frame_number, block_x, block_y,
-					block_width, block_height);  //用于测试文件格式
-			if (buf != NULL || block_data != NULL)
-			{
+			/*			WriteBlockToDisk(buf, blen, fp, block_timestamp, block_x, block_y,
+			 block_width, block_height);*/
+			gzWriteBlockToDisk(buf, blen, gfp, block_timestamp, block_x,
+					block_y, block_width, block_height);  //用于测试文件格式
+			if (buf != NULL || block_data != NULL) {
 				free(buf);
 				free(block_data);
 				block_data = NULL;
 				buf = NULL;
-
 			}
 		}
 
@@ -374,20 +341,18 @@ int CompressAndWrite(const char* filename, int frame_rate,
 		block_parameter = NULL;
 		XDestroyImage(new_img);
 
-		while (1)
-		{  //控制帧率
-			struct timeval end_tv;
-			gettimeofday(&end_tv, NULL);
-			if (((end_tv.tv_sec - start_tv.tv_sec)
-					+ 0.000001 * (end_tv.tv_usec - start_tv.tv_usec))
-					>= Frame_number * 1.0 / frame_rate)
-			{
+		while (1) {  //控制帧率
+			gettimeofday(&current_tv, NULL);
+			if (((current_tv.tv_sec - frame_tv.tv_sec)
+					+ 0.000001 * (current_tv.tv_usec - frame_tv.tv_usec))
+					>= 1.0 / frame_rate) {
 				break;
 			}
 		}
-		time(&end_time);
-		if (difftime(end_time, start_time) >= video_time_length)
-		{
+
+		if (((current_tv.tv_sec - start_tv.tv_sec)
+				+ 0.000001 * (current_tv.tv_usec - start_tv.tv_usec))
+				>= video_time_length) {
 			break;
 		}
 		//控制帧率的块end

@@ -1,13 +1,11 @@
 #include "VideoRecordAndReplayFunctions.h"
 
 int ReadBlockFromDisk(void *buffer, size_t compressed_block_size, FILE* stream,
-		unsigned int * Frame_number, unsigned int* block_x,
+		unsigned int * block_timestamp, unsigned int* block_x,
 		unsigned int* block_y, unsigned int* block_width,
-		unsigned int* block_height)
-{
+		unsigned int* block_height) {
 
-	if ((fread(Frame_number, sizeof(unsigned int), 1, stream)) != 1)
-	{
+	if ((fread(block_timestamp, sizeof(unsigned int), 1, stream)) != 1) {
 		printf("read error or reach the file's end ！\n");
 		return 0;
 	}
@@ -21,13 +19,11 @@ int ReadBlockFromDisk(void *buffer, size_t compressed_block_size, FILE* stream,
 }
 
 int gzReadBlockFromDisk(void *buffer, unsigned long compressed_block_size,
-		gzFile stream, unsigned int * Frame_number, unsigned int* block_x,
+		gzFile stream, unsigned int * block_timestamp, unsigned int* block_x,
 		unsigned int* block_y, unsigned int* block_width,
-		unsigned int* block_height)
-{
+		unsigned int* block_height) {
 
-	if ((gzread(stream, Frame_number, sizeof(unsigned int))) != 4)
-	{
+	if ((gzread(stream, block_timestamp, sizeof(unsigned int))) != 4) {
 		printf("read error or reach the file's end ！\n");
 		return 0;
 	}
@@ -42,8 +38,7 @@ int gzReadBlockFromDisk(void *buffer, unsigned long compressed_block_size,
 
 int PutDatablockToXImage(XImage* baseimg, char* block_data,
 		unsigned int block_x, unsigned int block_y, unsigned int block_width,
-		unsigned int block_height)
-{
+		unsigned int block_height) {
 	unsigned int width = baseimg->width;
 	//unsigned int height = baseimg->height;
 	unsigned int rightCornor_x = block_x + block_width;
@@ -51,10 +46,8 @@ int PutDatablockToXImage(XImage* baseimg, char* block_data,
 	unsigned int t = 0; //指针数据变量
 	unsigned int i = 0; //高
 	unsigned int j = 0; //宽
-	for (i = block_y; i < rightCornor_y; i++)
-	{
-		for (j = block_x; j < rightCornor_x; j++)
-		{
+	for (i = block_y; i < rightCornor_y; i++) {
+		for (j = block_x; j < rightCornor_x; j++) {
 			*(baseimg->data + (i * width + j) * 4) = *(block_data + t);
 			t++;
 			*(baseimg->data + (i * width + j) * 4 + 1) = *(block_data + t);
@@ -65,45 +58,43 @@ int PutDatablockToXImage(XImage* baseimg, char* block_data,
 			t++;
 		}
 	}
-	if (t != block_width * block_height * 4)
-	{
+	if (t != block_width * block_height * 4) {
 		printf("GetDatablockFromXImage inside write error !\n");
 		return -1;
 	}
 	return 1;
 }
 
-int UncompressAndDisplay(const char* filename, int frame_rate)
-{
+int UncompressAndDisplay(const char* filename, int frame_rate) {
 
 	unsigned long compressed_block_size;
 	unsigned long uncompressed_block_size;
-	unsigned int Frame_number;
-	int display_flag = -1;
+	unsigned int block_timestamp;
+	unsigned int pre_block_timestamp = -1;
 	unsigned int block_x;
 	unsigned int block_y;
 	unsigned int block_width;
 	unsigned int block_height;
-
+	unsigned int record_replay_time_diff;
 	unsigned char* buf = NULL;
 	char* img_data = NULL;
 	XImage* img;
+
+	struct timeval start_replay_tv;
+	struct timeval current_replay_tv;
 	//FILE *fp = fopen(filename, "rb");
 	gzFile gfp = gzopen(filename, "rb"); //用于测试文件格式
-	if (gfp == 0)
-	{
+	if (gfp == 0) {
 		printf("could not open file: %s !!\n", filename);
 		return 0;
 	}
 	Display* display = XOpenDisplay(NULL); //connect to a local display
-	if (NULL == display)
-	{
+	if (NULL == display) {
 		printf("CaptureDesktop cannot get root window\n");
 		return 0;
 	}
 	Window desktop = RootWindow(display, 0); //refer to root window
-	if (desktop == 0)
-	{
+	if (desktop == 0) {
 		printf("CaptureDesktop cannot get root window\n");
 		return 0;
 	}
@@ -118,48 +109,43 @@ int UncompressAndDisplay(const char* filename, int frame_rate)
 	ZPixmap);
 
 	//start reading data from disk
-	while (1)
-	{
+	gettimeofday(&start_replay_tv, NULL);
+	while (1) {
 		/*		if (fread(&compressed_block_size, sizeof(size_t), 1, fp) == 0)
 		 {
 		 printf("reach the end  or read error !\n");
 		 return -1;
 		 }*/
-		if (gzread(gfp, &compressed_block_size, sizeof(unsigned long)) == 0)
-		{
+		if (gzread(gfp, &compressed_block_size, sizeof(unsigned long)) == 0) {
 			printf("reach the end of file!\n(or read error).\n");
 			return -1;
 		} //用于测试文件格式
 		if (compressed_block_size == 0)
 			continue;
-		if ((buf = (unsigned char*) malloc(compressed_block_size)) == NULL)
-		{
+		if ((buf = (unsigned char*) malloc(compressed_block_size)) == NULL) {
 			printf("no enough memory!\n");
 			return -1;
 		}
 		//读数据
-		/*		ReadBlockFromDisk(buf, compressed_block_size, fp, &Frame_number,
+		/*		ReadBlockFromDisk(buf, compressed_block_size, fp, &block_timestamp,
 		 &block_x, &block_y, &block_width, &block_height);*/
-		gzReadBlockFromDisk(buf, compressed_block_size, gfp, &Frame_number,
+		gzReadBlockFromDisk(buf, compressed_block_size, gfp, &block_timestamp,
 				&block_x, &block_y, &block_width, &block_height); //用于测试文件格式
 		if ((img_data = (char*) malloc((block_width) * (block_height) * 4))
-				== NULL)
-		{
+				== NULL) {
 			printf("no enough memory!\n");
 			return -1;
 		}
 		//解压缩
 		uncompressed_block_size = block_width * block_height * 4;
 		if (uncompress((unsigned char*) img_data, &uncompressed_block_size, buf,
-				compressed_block_size) != Z_OK)
-		{
+				compressed_block_size) != Z_OK) {
 			printf("uncompress failed!\n");
 			return -1;
 		}
 
-		if (Frame_number - display_flag == 1)
-		{ //用于显示图片 需修改
-		  //XSelectInput(display, window, ButtonPressMask | ExposureMask);
+		if (block_timestamp != pre_block_timestamp) { //用于显示图片 需修改
+													  //XSelectInput(display, window, ButtonPressMask | ExposureMask);
 			XMapWindow(display, window);
 			/*	XEvent ev;
 			 bool displayflag = true;
@@ -178,16 +164,27 @@ int UncompressAndDisplay(const char* filename, int frame_rate)
 			 }
 
 			 }*/
+
 			XPutImage(display, window, DefaultGC(display, 0), img, 0, 0, 0, 0,
 					screen_width, screen_height);
-			display_flag++;
 
-			usleep(1000000.0 / frame_rate);
+			if (pre_block_timestamp != -1) {
+				gettimeofday(&current_replay_tv, NULL);
+				record_replay_time_diff = block_timestamp
+						- ((current_replay_tv.tv_sec - start_replay_tv.tv_sec)
+								* 1000
+								+ (int) ((current_replay_tv.tv_usec
+										- start_replay_tv.tv_usec) / 1000));
+				if (record_replay_time_diff > 0) {
+					usleep(record_replay_time_diff * 1000);
+				}
+			}
+			// usleep(1000000.0 / frame_rate);
 		}
 
 		PutDatablockToXImage(img, img_data, block_x, block_y, block_width,
 				block_height);
-
+		pre_block_timestamp = block_timestamp;
 	}
 	/* 释放内存 */
 	XUnmapWindow(display, window);
@@ -196,8 +193,7 @@ int UncompressAndDisplay(const char* filename, int frame_rate)
 	XDestroyWindow(display, window);
 	XDestroyImage(img);
 	XCloseDisplay(display);
-	if (buf != NULL || img_data != NULL)
-	{
+	if (buf != NULL || img_data != NULL) {
 		free(buf);
 		free(img_data);
 		buf = NULL;
